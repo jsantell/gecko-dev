@@ -25,7 +25,7 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
    */
   initialize: function (conn, node) {
     protocol.Actor.prototype.initialize.call(this, conn);
-    this.node = node;
+    this.node = XPCNativeWrapper.unwrap(node);
     try {
       this.type = this.node.toString().match(/\[object (.*)\]$/)[1];
     } catch (e) {

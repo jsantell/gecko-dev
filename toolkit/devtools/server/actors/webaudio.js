@@ -13,6 +13,7 @@ const protocol = require("devtools/server/protocol");
 const { on, once, off, emit } = events;
 const { method, Arg, Option, RetVal } = protocol;
 const { AudioNodeActor } = require("devtools/server/actors/audionode");
+const tm = Cc["@mozilla.org/thread-manager;1"].getService(Ci.nsIThreadManager);
 
 exports.register = function(handle) {
   handle.addTabActor(WebAudioActor, "webaudioActor");
@@ -157,15 +158,31 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
   },
 
   /**
+   * Takes an AudioNode and returns the stored actor for it.
+   * In some cases, we won't have an actor stored (for example,
+   * connecting to an AudioDestinationNode, since it's implicitly
+   * created), so make a new actor and store that.
+   */
+  _actorFor: function (node) {
+    let actor = this._nodeActors.get(node);
+    if (!actor) {
+      actor = new AudioNodeActor(this.conn, node);
+      this._nodeActors.set(node, actor);
+    }
+    return actor;
+  },
+
+  /**
    * Called when one audio node is connected to another.
    */
   _onConnectNode: function (source, dest) {
-    let sourceActor = this._nodeActors.get(source);
-    let destActor = this._nodeActors.get(dest);
-    events.emit(this, "connect-node", {
+    let sourceActor = this._actorFor(source);
+    let destActor = this._actorFor(dest);
+    console.log('_OnCONNECTNODE', sourceActor, destActor, source, dest);
+    async(() => events.emit(this, "connect-node", {
       source: sourceActor,
       dest: destActor
-    });
+    }));
   },
   
   /**
@@ -179,20 +196,20 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
    * Called when an audio node is disconnected.
    */
   _onDisconnectNode: function (node) {
-    let actor = this._nodeActors.get(node);
-    events.emit(this, "disconnect-node", actor);
+    let actor = this._actorFor(node);
+    async(() => events.emit(this, "disconnect-node", actor));
   },
   
   /**
    * Called when a parameter changes on an audio node
    */
   _onParamChange: function (node, param, value) {
-    let actor = this._nodeActors.get(node);
-    events.emit(this, "param-change", {
+    let actor = this._actorFor(node);
+    async(() => events.emit(this, "param-change", {
       source: actor,
       param: param,
       value: value
-    });
+    }));
   },
 
   /**
@@ -201,8 +218,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
   _onCreateNode: function (node) {
     let nodeActor = new AudioNodeActor(this.conn, node);
     this._nodeActors.set(node, nodeActor);
-    console.log("ON cREATE NODE EMITTING", nodeActor);
-    events.emit(this, "create-node", nodeActor);
+    async(() => events.emit(this, "create-node", nodeActor));
   }
 });
 
@@ -284,7 +300,6 @@ let WebAudioInstrumenter = {
   handle: function(window, observer) {
     let self = this;
 
-    let id = getInnerWindowID(window);
     let AudioContext = XPCNativeWrapper.unwrap(window.AudioContext);
     let AudioNode = XPCNativeWrapper.unwrap(window.AudioNode);
     let ctxProto = AudioContext.prototype;
@@ -355,11 +370,10 @@ WebAudioObserver.prototype = {
 
 // Utility functions.
 
-function getInnerWindowID(window) {
-  return window
-    .QueryInterface(Ci.nsIInterfaceRequestor)
-    .getInterface(Ci.nsIDOMWindowUtils)
-    .currentInnerWindowID;
+function async (fn) {
+  tm.mainThread.dispatch({
+    run: fn
+  }, Ci.nsIThread.DISPATCH_NORMAL);
 }
 
 let NODE_CREATION_METHODS = [

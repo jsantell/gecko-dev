@@ -193,26 +193,28 @@ function teardown(aPanel) {
   ]);
 }
 
-// Due to `program-linked` events firing synchronously, we cannot
-// just yield/chain them together, as then we miss all actors after the
-// first event since they're fired consecutively. This allows us to capture
-// all actors and returns an array containing them.
+// Due to web audio will fire most events synchronously back-to-back,
+// and we can't yield them in a chain without missing actors, this allows
+// us to listen for `n` events and return a promise resolving to them.
 //
 // Takes a `front` object that is an event emitter, the number of
 // programs that should be listened to and waited on, and an optional
 // `onAdd` function that calls with the entire actors array on program link
-function getPrograms(front, count, onAdd) {
+function getN (front, eventName, count) {
   let actors = [];
   let deferred = Promise.defer();
-  front.on("program-linked", function onLink (actor) {
+  front.on(eventName, function onEvent (actor) {
     if (actors.length !== count) {
       actors.push(actor);
-      if (typeof onAdd === 'function') onAdd(actors)
     }
     if (actors.length === count) {
-      front.off("program-linked", onLink);
+      front.off(eventName, onEvent);
       deferred.resolve(actors);
     }
   });
   return deferred.promise;
 }
+
+function get (front, eventName) { return getN(front, eventName, 1); }
+function get2 (front, eventName) { return getN(front, eventName, 2); }
+function get3 (front, eventName) { return getN(front, eventName, 2); }
