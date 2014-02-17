@@ -24,6 +24,7 @@ let Toolbox = devtools.Toolbox;
 
 const EXAMPLE_URL = "http://example.com/browser/browser/devtools/webaudioeditor/test/";
 const SIMPLE_CONTEXT_URL = EXAMPLE_URL + "doc_simple-context.html";
+const SIMPLE_NODES_URL = EXAMPLE_URL + "doc_simple-node-creation.html";
 
 // All tests are asynchronous.
 waitForExplicitFinish();

@@ -1,6 +1,10 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+/**
+ * Test basic communication of Web Audio actor
+ */
+
 function spawnTest () {
   let [target, debuggee, front] = yield initBackend(SIMPLE_CONTEXT_URL);
   let [_, [oscNode, gainNode], [connect1, connect2]] = yield Promise.all([

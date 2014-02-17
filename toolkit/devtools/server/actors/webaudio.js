@@ -216,6 +216,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
    * Called on node creation.
    */
   _onCreateNode: function (node) {
+                   console.log("_ONCREATENODE", node);
     let nodeActor = new AudioNodeActor(this.conn, node);
     this._nodeActors.set(node, nodeActor);
     async(() => events.emit(this, "create-node", nodeActor));
@@ -332,6 +333,7 @@ let WebAudioInstrumenter = {
       let originalMethod = ctxProto[method];
       ctxProto[method] = function (...args) {
         let node = originalMethod.apply(this, args);
+        console.log("CALLING", method, args, node);
         observer.createNode(node);
         return node;
       };
@@ -381,5 +383,5 @@ let NODE_CREATION_METHODS = [
   "createMediaStreamDestination", "createScriptProcessor", "createAnalyser",
   "createGain", "createDelay", "createBiquadFilter", "createWaveShaper",
   "createPanner", "createConvolver", "createChannelSplitter", "createChannelMerger",
-  "createDynamicsCompressor", "createOscillator", "createPeriodicWave"
+  "createDynamicsCompressor", "createOscillator"
 ];
