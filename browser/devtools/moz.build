@@ -24,6 +24,7 @@ DIRS += [
     'styleinspector',
     'tilt',
     'webconsole',
+    'webaudioeditor'
 ]
 
 EXTRA_COMPONENTS += [

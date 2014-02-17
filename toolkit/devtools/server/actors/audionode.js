@@ -12,8 +12,8 @@ const { method, Arg, Option, RetVal } = protocol;
  * An Audio Node actor allowing communication to a specific audio node in the
  * Audio Context graph.
  */
-let AudioNodeActor = protocol.ActorClass({
-  typeName: "audio-node",
+let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
+  typeName: "audionode",
 
   /**
    * Create the Audio Node actor.
@@ -27,7 +27,7 @@ let AudioNodeActor = protocol.ActorClass({
     protocol.Actor.prototype.initialize.call(this, conn);
     this.node = node;
     try {
-      this.type = this.node.match(/\[object (.*)\]$/)[1];
+      this.type = this.node.toString().match(/\[object (.*)\]$/)[1];
     } catch (e) {
       this.type = "";
     }
@@ -74,7 +74,6 @@ let AudioNodeActor = protocol.ActorClass({
     },
     oneway: true
   })
-
 });
 
 /**

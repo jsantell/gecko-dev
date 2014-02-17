@@ -12,6 +12,18 @@ const protocol = require("devtools/server/protocol");
 
 const { on, once, off, emit } = events;
 const { method, Arg, Option, RetVal } = protocol;
+const { AudioNodeActor } = require("devtools/server/actors/audionode");
+
+exports.register = function(handle) {
+  handle.addTabActor(WebAudioActor, "webaudioActor");
+};
+
+exports.unregister = function(handle) {
+  handle.removeTabActor(WebAudioActor);
+};
+
+/**
+ * A WebGL Shader contributing to building a WebGL Program.
 
 /**
  * The Web Audio Actor handles simple interaction with an AudioContext
@@ -49,6 +61,9 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
       return;
     }
     this._initialized = true;
+
+    // Weak map mapping audio nodes to their corresponding actors
+    this._nodeActors = new WeakMap();
 
     this._contentObserver = new ContentObserver(this.tabActor);
     this._webaudioObserver = new WebAudioObserver();
@@ -104,7 +119,27 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
   events: {
     "connect-node": {
       type: "connectNode",
-      program: Arg(0, "gl-program")
+      source: Option(0, "audionode"),
+      dest: Option(0, "audionode")
+    },
+    "disconnect-node": {
+      type: "disconnectNode",
+      source: Arg(0, "audionode")
+    },
+    "connect-param": {
+      type: "connectParam",
+      source: Arg(0, "audionode"),
+      param: Arg(1, "string")
+    },
+    "change-param": {
+      type: "changeParam",
+      source: Option(0, "audionode"),
+      param: Option(0, "string"),
+      value: Option(0, "string")
+    },
+    "create-node": {
+      type: "createNode",
+      source: Arg(0, "audionode")
     }
   },
 
@@ -112,7 +147,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
    * Invoked whenever the current tab actor's document global is created.
    */
   _onGlobalCreated: function(window) {
-    WebGLInstrumenter.handle(window, this._webaudioObserver);
+    WebAudioInstrumenter.handle(window, this._webaudioObserver);
   },
 
   /**
@@ -122,12 +157,52 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
   },
 
   /**
-   * Invoked whenever an observed WebGL context links a program.
+   * Called when one audio node is connected to another.
    */
-  _onProgramLinked: function(...args) {
-    let programActor = new ProgramActor(this.conn, args);
-    this._programActorsCache.push(programActor);
-    events.emit(this, "program-linked", programActor);
+  _onConnectNode: function (source, dest) {
+    let sourceActor = this._nodeActors.get(source);
+    let destActor = this._nodeActors.get(dest);
+    events.emit(this, "connect-node", {
+      source: sourceActor,
+      dest: destActor
+    });
+  },
+  
+  /**
+   * Called when an audio node is connected to an audio param.
+   */
+  _onConnectParam: function (source, dest) {
+    // TODO
+  },
+  
+  /**
+   * Called when an audio node is disconnected.
+   */
+  _onDisconnectNode: function (node) {
+    let actor = this._nodeActors.get(node);
+    events.emit(this, "disconnect-node", actor);
+  },
+  
+  /**
+   * Called when a parameter changes on an audio node
+   */
+  _onParamChange: function (node, param, value) {
+    let actor = this._nodeActors.get(node);
+    events.emit(this, "param-change", {
+      source: actor,
+      param: param,
+      value: value
+    });
+  },
+
+  /**
+   * Called on node creation.
+   */
+  _onCreateNode: function (node) {
+    let nodeActor = new AudioNodeActor(this.conn, node);
+    this._nodeActors.set(node, nodeActor);
+    console.log("ON cREATE NODE EMITTING", nodeActor);
+    events.emit(this, "create-node", nodeActor);
   }
 });
 
@@ -244,7 +319,7 @@ let WebAudioInstrumenter = {
         let node = originalMethod.apply(this, args);
         observer.createNode(node);
         return node;
-      }
+      };
     });
   }
 };
