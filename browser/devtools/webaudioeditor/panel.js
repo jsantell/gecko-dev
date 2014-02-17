@@ -6,21 +6,21 @@
 "use strict";
 
 const { Cc, Ci, Cu, Cr } = require("chrome");
-const promise = Cu.import("resource://gre/modules/Promise.jsm", {}).Promise;
+const Promise = Cu.import("resource://gre/modules/Promise.jsm", {}).Promise;
 const EventEmitter = require("devtools/shared/event-emitter");
-const { WebGLFront } = require("devtools/server/actors/webgl");
+const { WebAudioFront } = require("devtools/server/actors/webaudio");
 
-function ShaderEditorPanel(iframeWindow, toolbox) {
+function WebAudioEditorPanel (iframeWindow, toolbox) {
   this.panelWin = iframeWindow;
   this._toolbox = toolbox;
   this._destroyer = null;
 
   EventEmitter.decorate(this);
-};
+}
 
-exports.ShaderEditorPanel = ShaderEditorPanel;
+exports.WebAudioEditorPanel = WebAudioEditorPanel;
 
-ShaderEditorPanel.prototype = {
+WebAudioEditorPanel.prototype = {
   open: function() {
     let targetPromise;
 
@@ -28,14 +28,14 @@ ShaderEditorPanel.prototype = {
     if (!this.target.isRemote) {
       targetPromise = this.target.makeRemote();
     } else {
-      targetPromise = promise.resolve(this.target);
+      targetPromise = Promise.resolve(this.target);
     }
 
     return targetPromise
       .then(() => {
         this.panelWin.gToolbox = this._toolbox;
         this.panelWin.gTarget = this.target;
-        this.panelWin.gFront = new WebGLFront(this.target.client, this.target.form);
+        this.panelWin.gFront = new WebAudioFront(this.target.client, this.target.form);
         return this.panelWin.startupShaderEditor();
       })
       .then(() => {
@@ -44,7 +44,7 @@ ShaderEditorPanel.prototype = {
         return this;
       })
       .then(null, function onError(aReason) {
-        Cu.reportError("ShaderEditorPanel open failed. " +
+        Cu.reportError("WebAudioEditorPanel open failed. " +
                        aReason.error + ": " + aReason.message);
       });
   },

@@ -13,7 +13,7 @@ Cu.import("resource:///modules/devtools/SideMenuWidget.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 
 const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
-const promise = Cu.import("resource://gre/modules/Promise.jsm", {}).Promise;
+const Promise = Cu.import("resource://gre/modules/Promise.jsm", {}).Promise;
 const EventEmitter = require("devtools/shared/event-emitter");
 const {Tooltip} = require("devtools/shared/widgets/Tooltip");
 const Editor = require("devtools/sourceeditor/editor");
@@ -37,28 +37,16 @@ const EVENTS = {
   EDITOR_ERROR_MARKERS_REMOVED: "ShaderEditor:EditorCleaned"
 };
 
-const STRINGS_URI = "chrome://browser/locale/devtools/shadereditor.properties"
-const HIGHLIGHT_TINT = [1, 0, 0.25, 1]; // rgba
-const TYPING_MAX_DELAY = 500; // ms
-const SHADERS_AUTOGROW_ITEMS = 4;
-const GUTTER_ERROR_PANEL_OFFSET_X = 7; // px
-const GUTTER_ERROR_PANEL_DELAY = 100; // ms
-const DEFAULT_EDITOR_CONFIG = {
-  gutters: ["errors"],
-  lineNumbers: true,
-  showAnnotationRuler: true
-};
-
 /**
  * The current target and the WebGL Editor front, set by this tool's host.
  */
 let gToolbox, gTarget, gFront;
 
 /**
- * Initializes the shader editor controller and views.
+ * Initializes the web audio editor views
  */
-function startupShaderEditor() {
-  return promise.all([
+function startupWebAudioEditor() {
+  return Promise.all([
     EventsHandler.initialize(),
     ShadersListView.initialize(),
     ShadersEditorsView.initialize()
@@ -68,8 +56,8 @@ function startupShaderEditor() {
 /**
  * Destroys the shader editor controller and views.
  */
-function shutdownShaderEditor() {
-  return promise.all([
+function shutdownWebAudioEditor() {
+  return Promise.all([
     EventsHandler.destroy(),
     ShadersListView.destroy(),
     ShadersEditorsView.destroy()
@@ -174,7 +162,7 @@ let EventsHandler = {
 /**
  * Functions handling the sources UI.
  */
-let ShadersListView = Heritage.extend(WidgetMethods, {
+let WebAudioGraphView = Heritage.extend(WidgetMethods, {
   /**
    * Initialization function, called when the tool is started.
    */
@@ -273,13 +261,13 @@ let ShadersListView = Heritage.extend(WidgetMethods, {
     let attachment = sourceItem.attachment;
 
     function getShaders() {
-      return promise.all([
+      return Promise.all([
         attachment.vs || (attachment.vs = attachment.programActor.getVertexShader()),
         attachment.fs || (attachment.fs = attachment.programActor.getFragmentShader())
       ]);
     }
     function getSources([vertexShaderActor, fragmentShaderActor]) {
-      return promise.all([
+      return Promise.all([
         vertexShaderActor.getText(),
         fragmentShaderActor.getText()
       ]);
@@ -339,9 +327,9 @@ let ShadersListView = Heritage.extend(WidgetMethods, {
 });
 
 /**
- * Functions handling the editors displaying the vertex and fragment shaders.
+ * Functions for handling the AudioContext graph view
  */
-let ShadersEditorsView = {
+let ContextView = {
   /**
    * Initialization function, called when the tool is started.
    */
@@ -358,241 +346,8 @@ let ShadersEditorsView = {
    */
   destroy: function() {
     this._toggleListeners("off");
-  },
-
-  /**
-   * Sets the text displayed in the vertex and fragment shader editors.
-   *
-   * @param object sources
-   *        An object containing the following properties
-   *          - vs: the vertex shader source code
-   *          - fs: the fragment shader source code
-   * @return object
-   *        A promise resolving upon completion of text setting.
-   */
-  setText: function(sources) {
-    let view = this;
-    function setTextAndClearHistory(editor, text) {
-      editor.setText(text);
-      editor.clearHistory();
-    }
-
-    return Task.spawn(function() {
-      yield view._toggleListeners("off");
-      yield promise.all([
-        view._getEditor("vs").then(e => setTextAndClearHistory(e, sources.vs)),
-        view._getEditor("fs").then(e => setTextAndClearHistory(e, sources.fs))
-      ]);
-      yield view._toggleListeners("on");
-    }).then(() => window.emit(EVENTS.SOURCES_SHOWN, sources));
-  },
-
-  /**
-   * Lazily initializes and returns a promise for an Editor instance.
-   *
-   * @param string type
-   *        Specifies for which shader type should an editor be retrieved,
-   *        either are "vs" for a vertex, or "fs" for a fragment shader.
-   * @return object
-   *        Returns a promise that resolves to an editor instance
-   */
-  _getEditor: function(type) {
-    if ($("#content").hidden) {
-      return promise.reject(new Error("Shader Editor is still waiting for a WebGL context to be created."));
-    }
-    if (this._editorPromises.has(type)) {
-      return this._editorPromises.get(type);
-    }
-
-    let deferred = promise.defer();
-    this._editorPromises.set(type, deferred.promise);
-
-    // Initialize the source editor and store the newly created instance
-    // in the ether of a resolved promise's value.
-    let parent = $("#" + type +"-editor");
-    let editor = new Editor(DEFAULT_EDITOR_CONFIG);
-    editor.config.mode = Editor.modes[type];
-    editor.appendTo(parent).then(() => deferred.resolve(editor));
-
-    return deferred.promise;
-  },
-
-  /**
-   * Toggles all the event listeners for the editors either on or off.
-   *
-   * @param string flag
-   *        Either "on" to enable the event listeners, "off" to disable them.
-   * @return object
-   *        A promise resolving upon completion of toggling the listeners.
-   */
-  _toggleListeners: function(flag) {
-    return promise.all(["vs", "fs"].map(type => {
-      return this._getEditor(type).then(editor => {
-        editor[flag]("focus", this["_" + type + "Focused"]);
-        editor[flag]("change", this["_" + type + "Changed"]);
-      });
-    }));
-  },
-
-  /**
-   * The focus listener for a source editor.
-   *
-   * @param string focused
-   *        The corresponding shader type for the focused editor (e.g. "vs").
-   * @param string focused
-   *        The corresponding shader type for the other editor (e.g. "fs").
-   */
-  _onFocused: function(focused, unfocused) {
-    $("#" + focused + "-editor-label").setAttribute("selected", "");
-    $("#" + unfocused + "-editor-label").removeAttribute("selected");
-  },
-
-  /**
-   * The change listener for a source editor.
-   *
-   * @param string type
-   *        The corresponding shader type for the focused editor (e.g. "vs").
-   */
-  _onChanged: function(type) {
-    setNamedTimeout("gl-typed", TYPING_MAX_DELAY, () => this._doCompile(type));
-
-    // Remove all the gutter markers and line classes from the editor.
-    this._cleanEditor(type);
-  },
-
-  /**
-   * Recompiles the source code for the shader being edited.
-   * This function is fired at a certain delay after the user stops typing.
-   *
-   * @param string type
-   *        The corresponding shader type for the focused editor (e.g. "vs").
-   */
-  _doCompile: function(type) {
-    Task.spawn(function() {
-      let editor = yield this._getEditor(type);
-      let shaderActor = yield ShadersListView.selectedAttachment[type];
-
-      try {
-        yield shaderActor.compile(editor.getText());
-        this._onSuccessfulCompilation();
-      } catch (e) {
-        this._onFailedCompilation(type, editor, e);
-      }
-    }.bind(this));
-  },
-
-  /**
-   * Called uppon a successful shader compilation.
-   */
-  _onSuccessfulCompilation: function() {
-    // Signal that the shader was compiled successfully.
-    window.emit(EVENTS.SHADER_COMPILED, null);
-  },
-
-  /**
-   * Called uppon an unsuccessful shader compilation.
-   */
-  _onFailedCompilation: function(type, editor, errors) {
-    let lineCount = editor.lineCount();
-    let currentLine = editor.getCursor().line;
-    let listeners = { mouseenter: this._onMarkerMouseEnter };
-
-    function matchLinesAndMessages(string) {
-      return {
-        // First number that is not equal to 0.
-        lineMatch: string.match(/\d{2,}|[1-9]/),
-        // The string after all the numbers, semicolons and spaces.
-        textMatch: string.match(/[^\s\d:][^\r\n|]*/)
-      };
-    }
-    function discardInvalidMatches(e) {
-      // Discard empty line and text matches.
-      return e.lineMatch && e.textMatch;
-    }
-    function sanitizeValidMatches(e) {
-      return {
-        // Drivers might yield confusing line numbers under some obscure
-        // circumstances. Don't throw the errors away in those cases,
-        // just display them on the currently edited line.
-        line: e.lineMatch[0] > lineCount ? currentLine : e.lineMatch[0] - 1,
-        // Trim whitespace from the beginning and the end of the message,
-        // and replace all other occurences of double spaces to a single space.
-        text: e.textMatch[0].trim().replace(/\s{2,}/g, " ")
-      };
-    }
-    function sortByLine(first, second) {
-      // Sort all the errors ascending by their corresponding line number.
-      return first.line > second.line ? 1 : -1;
-    }
-    function groupSameLineMessages(accumulator, current) {
-      // Group errors corresponding to the same line number to a single object.
-      let previous = accumulator[accumulator.length - 1];
-      if (!previous || previous.line != current.line) {
-        return [...accumulator, {
-          line: current.line,
-          messages: [current.text]
-        }];
-      } else {
-        previous.messages.push(current.text);
-        return accumulator;
-      }
-    }
-    function displayErrors({ line, messages }) {
-      // Add gutter markers and line classes for every error in the source.
-      editor.addMarker(line, "errors", "error");
-      editor.setMarkerListeners(line, "errors", "error", listeners, messages);
-      editor.addLineClass(line, "error-line");
-    }
-
-    (this._errors[type] = errors.link
-      .split("ERROR")
-      .map(matchLinesAndMessages)
-      .filter(discardInvalidMatches)
-      .map(sanitizeValidMatches)
-      .sort(sortByLine)
-      .reduce(groupSameLineMessages, []))
-      .forEach(displayErrors);
-
-    // Signal that the shader wasn't compiled successfully.
-    window.emit(EVENTS.SHADER_COMPILED, errors);
-  },
-
-  /**
-   * Event listener for the 'mouseenter' event on a marker in the editor gutter.
-   */
-  _onMarkerMouseEnter: function(line, node, messages) {
-    if (node._markerErrorsTooltip) {
-      return;
-    }
-
-    let tooltip = node._markerErrorsTooltip = new Tooltip(document);
-    tooltip.defaultOffsetX = GUTTER_ERROR_PANEL_OFFSET_X;
-    tooltip.setTextContent({ messages: messages });
-    tooltip.startTogglingOnHover(node, () => true, GUTTER_ERROR_PANEL_DELAY);
-  },
-
-  /**
-   * Removes all the gutter markers and line classes from the editor.
-   */
-  _cleanEditor: function(type) {
-    this._getEditor(type).then(editor => {
-      editor.removeAllMarkers("errors");
-      this._errors[type].forEach(e => editor.removeLineClass(e.line));
-      this._errors[type].length = 0;
-      window.emit(EVENTS.EDITOR_ERROR_MARKERS_REMOVED);
-    });
-  },
-
-  _errors: {
-    vs: [],
-    fs: []
   }
 };
-
-/**
- * Localization convenience methods.
- */
-let L10N = new ViewHelpers.L10N(STRINGS_URI);
 
 /**
  * Convenient way of emitting events from the panel window.
