@@ -64,15 +64,19 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
    * @param String type
    *        Datatype that `value` should be cast to.
    */
-  setParam: method(function (param, value, type) {
-    this.node[param].value = cast(value, type);
+  setParam: method(function (param, value, dataType) {
+    try {
+      this.node[param].value = cast(value, dataType);
+      return true;
+    } catch (e) {
+      return false;
+    }
   }, {
     request: {
       param: Arg(0, "string"),
       value: Arg(1, "string"),
-      type: Arg(2, "string")
-    },
-    oneway: true
+      dataType: Arg(2, "string")
+    }
   }),
   
   /**
