@@ -36,7 +36,7 @@ WebAudioEditorPanel.prototype = {
         this.panelWin.gToolbox = this._toolbox;
         this.panelWin.gTarget = this.target;
         this.panelWin.gFront = new WebAudioFront(this.target.client, this.target.form);
-        return this.panelWin.startupShaderEditor();
+        return this.panelWin.startupWebAudioEditor();
       })
       .then(() => {
         this.isReady = true;
@@ -59,7 +59,7 @@ WebAudioEditorPanel.prototype = {
       return this._destroyer;
     }
 
-    return this._destroyer = this.panelWin.shutdownShaderEditor().then(() => {
+    return this._destroyer = this.panelWin.shutdownWebAudioEditor().then(() => {
       this.emit("destroyed");
     });
   }

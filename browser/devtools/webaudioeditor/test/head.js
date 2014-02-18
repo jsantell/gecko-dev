@@ -29,12 +29,12 @@ const SIMPLE_NODES_URL = EXAMPLE_URL + "doc_simple-node-creation.html";
 // All tests are asynchronous.
 waitForExplicitFinish();
 
-//let gToolEnabled = Services.prefs.getBoolPref("devtools.webaudioeditor.enabled");
+let gToolEnabled = Services.prefs.getBoolPref("devtools.webaudioeditor.enabled");
 
 registerCleanupFunction(() => {
   info("finish() was called, cleaning up...");
   Services.prefs.setBoolPref("devtools.debugger.log", gEnableLogging);
-  //Services.prefs.setBoolPref("devtools.webaudioeditor.enabled", gToolEnabled);
+  Services.prefs.setBoolPref("devtools.webaudioeditor.enabled", gToolEnabled);
 });
 
 function addTab(aUrl, aWindow) {
@@ -168,8 +168,8 @@ function initBackend(aUrl) {
   });
 }
 
-function initShaderEditor(aUrl) {
-  info("Initializing a shader editor pane.");
+function initWebAudioEditor(aUrl) {
+  info("Initializing a web audio editor pane.");
 
   return Task.spawn(function*() {
     let tab = yield addTab(aUrl);
@@ -178,15 +178,15 @@ function initShaderEditor(aUrl) {
 
     yield target.makeRemote();
 
-    Services.prefs.setBoolPref("devtools.shadereditor.enabled", true);
-    let toolbox = yield gDevTools.showToolbox(target, "shadereditor");
+    Services.prefs.setBoolPref("devtools.webaudioeditor.enabled", true);
+    let toolbox = yield gDevTools.showToolbox(target, "webaudioeditor");
     let panel = toolbox.getCurrentPanel();
     return [target, debuggee, panel];
   });
 }
 
 function teardown(aPanel) {
-  info("Destroying the specified shader editor.");
+  info("Destroying the web audio editor.");
 
   return Promise.all([
     once(aPanel, "destroyed"),

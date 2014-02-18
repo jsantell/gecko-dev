@@ -300,6 +300,7 @@ let defaultTools = [
   Tools.jsdebugger,
   Tools.styleEditor,
   Tools.shaderEditor,
+  Tools.webAudioEditor,
   Tools.jsprofiler,
   Tools.netMonitor,
   Tools.scratchpad

@@ -39,12 +39,14 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     this._onGlobalCreated = this._onGlobalCreated.bind(this);
     this._onGlobalDestroyed = this._onGlobalDestroyed.bind(this);
 
+    this._onStartContext = this._onStartContext.bind(this);
     this._onConnectNode = this._onConnectNode.bind(this);
     this._onConnectParam = this._onConnectParam.bind(this);
     this._onDisconnectNode = this._onDisconnectNode.bind(this);
     this._onParamChange = this._onParamChange.bind(this);
     this._onCreateNode = this._onCreateNode.bind(this);
   },
+
   destroy: function(conn) {
     protocol.Actor.prototype.destroy.call(this, conn);
     this.finalize();
@@ -72,6 +74,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     on(this._contentObserver, "global-created", this._onGlobalCreated);
     on(this._contentObserver, "global-destroyed", this._onGlobalDestroyed);
 
+    on(this._webaudioObserver, "start-context", this._onStartContext);
     on(this._webaudioObserver, "connect-node", this._onConnectNode);
     on(this._webaudioObserver, "connect-param", this._onConnectParam);
     on(this._webaudioObserver, "disconnect-node", this._onDisconnectNode);
@@ -101,6 +104,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     off(this._contentObserver, "global-created", this._onGlobalCreated);
     off(this._contentObserver, "global-destroyed", this._onGlobalDestroyed);
 
+    off(this._webaudioObserver, "start-context", this._onStartContext);
     off(this._webaudioObserver, "connect-node", this._onConnectNode);
     off(this._webaudioObserver, "connect-param", this._onConnectParam);
     off(this._webaudioObserver, "disconnect-node", this._onDisconnectNode);
@@ -114,10 +118,12 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
   }),
 
   /**
-   * Events emitted by this actor. The "program-linked" event is fired
-   * every time a WebGL program was linked with its respective two shaders.
+   * Events emitted by this actor.
    */
   events: {
+    "start-context": {
+      type: "startContext"
+    },
     "connect-node": {
       type: "connectNode",
       source: Option(0, "audionode"),
@@ -173,25 +179,31 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
   },
 
   /**
+   * Called on first audio node creation, signifying audio context usage
+   */
+  _onStartContext: function () {
+    async(() => events.emit(this, "start-context"));
+  },
+
+  /**
    * Called when one audio node is connected to another.
    */
   _onConnectNode: function (source, dest) {
     let sourceActor = this._actorFor(source);
     let destActor = this._actorFor(dest);
-    console.log('_OnCONNECTNODE', sourceActor, destActor, source, dest);
     async(() => events.emit(this, "connect-node", {
       source: sourceActor,
       dest: destActor
     }));
   },
-  
+
   /**
    * Called when an audio node is connected to an audio param.
    */
   _onConnectParam: function (source, dest) {
     // TODO
   },
-  
+
   /**
    * Called when an audio node is disconnected.
    */
@@ -199,7 +211,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     let actor = this._actorFor(node);
     async(() => events.emit(this, "disconnect-node", actor));
   },
-  
+
   /**
    * Called when a parameter changes on an audio node
    */
@@ -216,7 +228,6 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
    * Called on node creation.
    */
   _onCreateNode: function (node) {
-                   console.log("_ONCREATENODE", node);
     let nodeActor = new AudioNodeActor(this.conn, node);
     this._nodeActors.set(node, nodeActor);
     async(() => events.emit(this, "create-node", nodeActor));
@@ -327,13 +338,23 @@ let WebAudioInstrumenter = {
     };
 
 
+    // Keep track of the first node created, so we can alert
+    // the front end that an audio context is being used since
+    // we're not hooking into the constructor itself, just its
+    // instance's methods.
+    let firstNodeCreated = false;
+
     // Patch all of AudioContext's methods that create an audio node
     // and hook into the observer
     NODE_CREATION_METHODS.forEach(method => {
       let originalMethod = ctxProto[method];
       ctxProto[method] = function (...args) {
         let node = originalMethod.apply(this, args);
-        console.log("CALLING", method, args, node);
+        // Fire the start-up event if this is the first node created
+        if (!firstNodeCreated) {
+          firstNodeCreated = true;
+          observer.startContext();
+        }
         observer.createNode(node);
         return node;
       };
@@ -348,6 +369,9 @@ let WebAudioInstrumenter = {
 function WebAudioObserver () {}
 
 WebAudioObserver.prototype = {
+  startContext: function () {
+    emit(this, "start-context");
+  },
 
   connectNode: function (source, dest) {
     emit(this, "connect-node", source, dest);
