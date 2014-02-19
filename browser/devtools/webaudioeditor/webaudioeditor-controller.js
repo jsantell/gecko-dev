@@ -46,42 +46,23 @@ let gToolbox, gTarget, gFront;
 let graphNodes = [];
 let graphEdges = [];
 
-/**
- * Really terrible way to track IDs on Graph Nodes
- */
-let lastId = 0;
-
 function createGraphNode (actor) {
   console.log("CGN\n\n\n");
   let deferred = Promise.defer();
   var node = {};
   node.actor = actor;
-  node.next = [];
-  node.id = lastId++;
+  node.id = actor.actorID;
   return actor.getType()
     .then(type => {
       node.type = type;
-      nodes.push(node);
-      window.emit(CREATE_NODE, actor);
+      console.log("PUSHING", node, type);
+      graphNodes.push(node);
+      window.emit(EVENTS.CREATE_NODE, actor);
     });
 }
 
 function createGraphEdge (sourceActor, destActor) {
   console.log("CGE\n\n\n");
-  let deferred = Promise.defer();
-  var node = {};
-  node.actor = actor;
-  node.next = [];
-  node.id = lastId++;
-  return actor.getType()
-    .then(type => {
-      node.type = type;
-      nodes.push(node);
-      window.emit(CREATE_NODE, actor);
-    });
-}
-
-function createGraphEdge (sourceActor, destActor) {
   let source = actorToGraphNode(sourceActor);
   let dest = actorToGraphNode(destActor);
   graphEdges.push({ source: source, target: dest });
@@ -89,7 +70,7 @@ function createGraphEdge (sourceActor, destActor) {
 
 function actorToGraphNode (actor) {
   for (let i = 0; i < graphNodes.length; i++)
-    if (graphNodes[i].actor === actor)
+    if (graphNodes[i].actor.actorID === actor.actorID)
       return graphNodes[i];
   return null;
 }
@@ -168,7 +149,11 @@ let WebAudioEditorController = {
           yield gFront.setup({ reload: false });
 
           // Reset UI to show "Waiting for Audio Context..."
-          WebAudioGraphView.showWaiting();
+          WebAudioGraphView.resetUI();
+
+          // Clear out stored graph
+          graphNodes.length = 0;
+          graphEdges.length = 0;
         }).then(() => window.emit(EVENTS.UI_RESET));
         break;
       }
@@ -200,7 +185,8 @@ let WebAudioEditorController = {
   /**
    * Called when a node is connected to another node.
    */
-  _onConnectNode: function(sourceActor, destActor) {
+  _onConnectNode: function({ source: sourceActor, dest: destActor }) {
+                    console.log("_onConnectNode", sourceActor, destActor);
     let source = actorToGraphNode(sourceActor);
     let dest = actorToGraphNode(destActor);
     let deferred = Promise.defer();
@@ -210,11 +196,13 @@ let WebAudioEditorController = {
     // the edge creation could be called before the graph node is actually
     // created. This way, we can check and listen for the event before
     // adding an edge.
+    console.log("SRC/DEST", !!source, !!dest);
     if (!source || !dest)
       window.on(EVENTS.CREATE_NODE, function createNodeListener (actor) {
-        if (actor === source)
+        console.log("EVENTS.CREATE_NODE fired", actor === sourceActor, actor === destActor);
+        if (actor === sourceActor)
           source = actor;
-        if (actor === dest)
+        if (actor === destActor)
           dest = actor;
         if (source && dest) {
           window.off(EVENTS.CREATE_NODE, createNodeListener);
@@ -243,7 +231,7 @@ let WebAudioEditorController = {
   /**
    * Called when a node param is changed.
    */
-  _onChangeParam: function(nodeActor, param, value) {
+  _onChangeParam: function({ actor: nodeActor, param, value }) {
     window.emit(EVENTS.CHANGE_PARAM, nodeActor, param, value);
   }
 };

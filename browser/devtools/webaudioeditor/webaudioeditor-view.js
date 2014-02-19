@@ -5,6 +5,8 @@
 
 
 // Globals for d3 stuff
+const WIDTH = 500;
+const HEIGHT = 400;
 let force, svg, path, circle, text;
 
 /**
@@ -25,11 +27,13 @@ let WebAudioGraphView = {
 
   /**
    * Called when a page is reloaded and waiting for a "start-context" event
+   * and clears out old content
    */
-  showWaiting: function () {
+  resetUI: function () {
     $("#reload-notice").hidden = true;
     $("#waiting-notice").hidden = false;
     $("#content").hidden = true;
+    // TODO remove SVG data
   },
 
   /**
@@ -47,53 +51,69 @@ let WebAudioGraphView = {
     this.draw();
   },
 
+  resetGraph: function () {
+    $("#graph").innerHTML = "";
+  },
+
   draw: function () {
-          console.log("DRAW\n\n\nNODES\n\n\n", graphNodes, graphEdges, graphNodes.length, graphEdges.length);
+    console.log("DRAW");
+    graphNodes.forEach(node => Object.keys(node).forEach(key => console.log(key, node[key])));
+    graphEdges.forEach(node => Object.keys(node).forEach(key => console.log(key, node[key])));
+
+    var fakeNodes = [{ type: "OscillatorNode" }, { type:"GainNode" }];
+    var fakeEdges = [{ source: fakeNodes[0], target: fakeNodes[1] }];
+    // Clear out previous SVG information
+    this.resetGraph();
+
     force = d3.layout.force()
+      //.nodes(fakeNodes)
+      //.links(fakeEdges)
       .nodes(graphNodes)
       .links(graphEdges)
-      .size([800,300])
+      .size([WIDTH, HEIGHT])
       .linkDistance(60)
       .charge(-300)
       .on("tick", tick)
       .start();
 
-    var svg = d3.select("#graph")
-      .attr("width", 1000)
-      .attr("height", 500);
+    svg = d3.select("#graph")
+      .attr("width", WIDTH)
+      .attr("height", HEIGHT);
 
     // Per-type markers, as they don't inherit styles.
     svg.append("defs").selectAll("marker")
-    .data(["suit", "licensing", "resolved"])
-    .enter().append("marker")
-    .attr("id", function(d) { return d; })
-    .attr("viewBox", "0 -5 10 10")
-    .attr("refX", 15)
-    .attr("refY", -1.5)
-    .attr("markerWidth", 6)
-    .attr("markerHeight", 6)
-    .attr("orient", "auto")
-    .append("path")
-    .attr("d", "M0,-5L10,0L0,5");
-    
+      .data(["suit", "licensing", "resolved"])
+      .enter().append("marker")
+      .attr("id", function(d) { return d; })
+      .attr("viewBox", "0 -5 10 10")
+      .attr("refX", 15)
+      .attr("refY", -1.5)
+      .attr("markerWidth", 6)
+      .attr("markerHeight", 6)
+      .attr("orient", "auto")
+      .append("path")
+      .attr("d", "M0,-5L10,0L0,5");
+
     path = svg.append("g").selectAll("path")
       .data(force.links())
       .enter().append("path")
-      .attr("class", function(d) { return "link " + d.type; })
-      .attr("marker-end", function(d) { return "url(#" + d.type + ")"; });
-
+      //.attr("class", function(d) { return "link " + d.type; })
+      //.attr("marker-end", function(d) { return "url(#" + d.type + ")"; });
+      .attr("class", function(d) { return "link suit"; })
+      .attr("marker-end", function(d) { return "url(#" + "suit" + ")"; });
+ 
     circle = svg.append("g").selectAll("circle")
       .data(force.nodes())
       .enter().append("circle")
       .attr("r", 6)
       .call(force.drag);
-
+ 
     text = svg.append("g").selectAll("text")
       .data(force.nodes())
       .enter().append("text")
       .attr("x", 8)
       .attr("y", ".31em")
-      .text(function(d) { return d.name; });
+      .text(function(d) { return d.type; });
   }
 };
 
