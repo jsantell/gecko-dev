@@ -47,7 +47,6 @@ let graphNodes = [];
 let graphEdges = [];
 
 function createGraphNode (actor) {
-  console.log("CGN\n\n\n");
   let deferred = Promise.defer();
   var node = {};
   node.actor = actor;
@@ -55,23 +54,25 @@ function createGraphNode (actor) {
   return actor.getType()
     .then(type => {
       node.type = type;
-      console.log("PUSHING", node, type);
+      console.log("pushing node", actor.actorID);
       graphNodes.push(node);
+      console.log('emitting EVENTS.CREATE_NODE', actor);
       window.emit(EVENTS.CREATE_NODE, actor);
     });
 }
 
 function createGraphEdge (sourceActor, destActor) {
-  console.log("CGE\n\n\n");
   let source = actorToGraphNode(sourceActor);
   let dest = actorToGraphNode(destActor);
   graphEdges.push({ source: source, target: dest });
 }
 
 function actorToGraphNode (actor) {
-  for (let i = 0; i < graphNodes.length; i++)
-    if (graphNodes[i].actor.actorID === actor.actorID)
+  for (let i = 0; i < graphNodes.length; i++) {
+    console.log("Are actors equal?", graphNodes[i].actor.actorID, actor.actorID);
+    if (equalActors(graphNodes[i].actor, actor))
       return graphNodes[i];
+  }
   return null;
 }
 
@@ -170,6 +171,7 @@ let WebAudioEditorController = {
    */
   _onStartContext: function() {
     WebAudioGraphView.showContent();
+                    console.log("_onStartContext");
     window.emit(EVENTS.START_CONTEXT);
   },
 
@@ -177,6 +179,7 @@ let WebAudioEditorController = {
    * Called when a new node is created.
    */
   _onCreateNode: function(nodeActor) {
+                    console.log("_onCreateNode", nodeActor.actorID);
     createGraphNode(nodeActor).then(() => {
       WebAudioGraphView.refresh();
     });
@@ -186,7 +189,7 @@ let WebAudioEditorController = {
    * Called when a node is connected to another node.
    */
   _onConnectNode: function({ source: sourceActor, dest: destActor }) {
-                    console.log("_onConnectNode", sourceActor, destActor);
+                    console.log("_onConnectNode", sourceActor.actorID, destActor.actorID);
     let source = actorToGraphNode(sourceActor);
     let dest = actorToGraphNode(destActor);
     let deferred = Promise.defer();
@@ -196,13 +199,13 @@ let WebAudioEditorController = {
     // the edge creation could be called before the graph node is actually
     // created. This way, we can check and listen for the event before
     // adding an edge.
-    console.log("SRC/DEST", !!source, !!dest);
+    console.log("CONNECT ACTORS FOUND:",source, dest);
     if (!source || !dest)
-      window.on(EVENTS.CREATE_NODE, function createNodeListener (actor) {
-        console.log("EVENTS.CREATE_NODE fired", actor === sourceActor, actor === destActor);
-        if (actor === sourceActor)
+      window.on(EVENTS.CREATE_NODE, function createNodeListener (_, actor) {
+        console.log("ON CREATE_NODE:", actor, actor.actorID);
+        if (equalActors(sourceActor, actor))
           source = actor;
-        if (actor === destActor)
+        if (equalActors(destActor, actor))
           dest = actor;
         if (source && dest) {
           window.off(EVENTS.CREATE_NODE, createNodeListener);
@@ -245,3 +248,11 @@ EventEmitter.decorate(this);
  * DOM query helper.
  */
 function $(selector, target = document) target.querySelector(selector);
+
+/**
+ * Compare `actorID` between two actors to determine if they're corresponding
+ * to the same underlying actor.
+ */
+function equalActors (actor1, actor2) {
+  return actor1.actorID === actor2.actorID;
+}

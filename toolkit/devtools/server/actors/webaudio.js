@@ -14,6 +14,7 @@ const { on, once, off, emit } = events;
 const { method, Arg, Option, RetVal } = protocol;
 const { AudioNodeActor } = require("devtools/server/actors/audionode");
 const tm = Cc["@mozilla.org/thread-manager;1"].getService(Ci.nsIThreadManager);
+const console = Cu.import("resource://gre/modules/devtools/Console.jsm").console;
 
 exports.register = function(handle) {
   handle.addTabActor(WebAudioActor, "webaudioActor");
@@ -66,7 +67,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     this._initialized = true;
 
     // Weak map mapping audio nodes to their corresponding actors
-    this._nodeActors = new WeakMap();
+    this._nodeActors = new Map();
 
     this._contentObserver = new ContentObserver(this.tabActor);
     this._webaudioObserver = new WebAudioObserver();
@@ -164,6 +165,18 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
   },
 
   /**
+   * Helper for constructing an AudioNodeActor, assigning to 
+   * internal weak map, and tracking via `manage` so it is assigned
+   * an `actorID`.
+   */
+  _constructAudioNode: function (node) {
+    let actor = new AudioNodeActor(this.conn, node);
+    this.manage(actor);
+    this._nodeActors.set(node, actor);
+    return actor;
+  },
+
+  /**
    * Takes an AudioNode and returns the stored actor for it.
    * In some cases, we won't have an actor stored (for example,
    * connecting to an AudioDestinationNode, since it's implicitly
@@ -172,8 +185,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
   _actorFor: function (node) {
     let actor = this._nodeActors.get(node);
     if (!actor) {
-      actor = new AudioNodeActor(this.conn, node);
-      this._nodeActors.set(node, actor);
+      actor = this._constructAudioNode(node);
     }
     return actor;
   },
@@ -228,9 +240,8 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
    * Called on node creation.
    */
   _onCreateNode: function (node) {
-    let nodeActor = new AudioNodeActor(this.conn, node);
-    this._nodeActors.set(node, nodeActor);
-    async(() => events.emit(this, "create-node", nodeActor));
+    let actor = this._constructAudioNode(node);
+    async(() => events.emit(this, "create-node", actor));
   }
 });
 
@@ -312,29 +323,34 @@ let WebAudioInstrumenter = {
   handle: function(window, observer) {
     let self = this;
 
-    let AudioContext = XPCNativeWrapper.unwrap(window.AudioContext);
-    let AudioNode = XPCNativeWrapper.unwrap(window.AudioNode);
+    let AudioContext = unwrap(window.AudioContext);
+    let AudioNode = unwrap(window.AudioNode);
     let ctxProto = AudioContext.prototype;
     let nodeProto = AudioNode.prototype;
 
     // All Web Audio nodes inherit from AudioNode's prototype, so
     // hook into the `connect` and `disconnect` methods
+
+    // audionode.connect(node|param);
     let originalConnect = nodeProto.connect;
     nodeProto.connect = function (...args) {
-      let nodeOrParam = args[0];
-      originalConnect.apply(this, args);
+      let source = unwrap(this);
+      let nodeOrParam = unwrap(args[0]);
+      originalConnect.apply(source, args);
 
       // Alert observer differently if connecting to an AudioNode or AudioParam
       if (nodeOrParam instanceof AudioNode)
-        observer.connectNode(this, nodeOrParam);
+        observer.connectNode(source, nodeOrParam);
       else
-        observer.connectParam(this, nodeOrParam);
+        observer.connectParam(source, nodeOrParam);
     };
 
+    // audionode.disconnect()
     let originalDisconnect = nodeProto.disconnect;
     nodeProto.disconnect = function (...args) {
-      originalDisconnect.apply(this, args);
-      observer.disconnectNode(this);
+      let source = unwrap(this);
+      originalDisconnect.apply(source, args);
+      observer.disconnectNode(source);
     };
 
 
@@ -351,9 +367,11 @@ let WebAudioInstrumenter = {
       ctxProto[method] = function (...args) {
         let node = originalMethod.apply(this, args);
         // Fire the start-up event if this is the first node created
+        // and trigger a `create-node` event for the context destination
         if (!firstNodeCreated) {
           firstNodeCreated = true;
           observer.startContext();
+          observer.createNode(node.context.destination);
         }
         observer.createNode(node);
         return node;
@@ -397,9 +415,14 @@ WebAudioObserver.prototype = {
 // Utility functions.
 
 function async (fn) {
+  return fn();
   tm.mainThread.dispatch({
     run: fn
   }, Ci.nsIThread.DISPATCH_NORMAL);
+}
+
+function unwrap (obj) {
+  return XPCNativeWrapper.unwrap(obj);
 }
 
 let NODE_CREATION_METHODS = [

@@ -7,7 +7,6 @@
 // Globals for d3 stuff
 const WIDTH = 500;
 const HEIGHT = 400;
-let force, svg, path, circle, text;
 
 /**
  * Functions handling the sources UI.
@@ -57,17 +56,15 @@ let WebAudioGraphView = {
 
   draw: function () {
     console.log("DRAW");
-    graphNodes.forEach(node => Object.keys(node).forEach(key => console.log(key, node[key])));
-    graphEdges.forEach(node => Object.keys(node).forEach(key => console.log(key, node[key])));
+    //graphNodes.forEach(node => Object.keys(node).forEach(key => console.log(key, node[key])));
+    //graphEdges.forEach(node => Object.keys(node).forEach(key => console.log(key, node[key])));
 
-    var fakeNodes = [{ type: "OscillatorNode" }, { type:"GainNode" }];
-    var fakeEdges = [{ source: fakeNodes[0], target: fakeNodes[1] }];
+    console.log('Node count: ', graphNodes.length);
+    console.log('Edge count: ', graphEdges.length);
     // Clear out previous SVG information
     this.resetGraph();
 
-    force = d3.layout.force()
-      //.nodes(fakeNodes)
-      //.links(fakeEdges)
+    let force = d3.layout.force()
       .nodes(graphNodes)
       .links(graphEdges)
       .size([WIDTH, HEIGHT])
@@ -76,13 +73,13 @@ let WebAudioGraphView = {
       .on("tick", tick)
       .start();
 
-    svg = d3.select("#graph")
+    let svg = d3.select("#graph")
       .attr("width", WIDTH)
       .attr("height", HEIGHT);
 
     // Per-type markers, as they don't inherit styles.
     svg.append("defs").selectAll("marker")
-      .data(["suit", "licensing", "resolved"])
+      .data(["enabled"])
       .enter().append("marker")
       .attr("id", function(d) { return d; })
       .attr("viewBox", "0 -5 10 10")
@@ -94,44 +91,44 @@ let WebAudioGraphView = {
       .append("path")
       .attr("d", "M0,-5L10,0L0,5");
 
-    path = svg.append("g").selectAll("path")
+    var path = svg.append("g").selectAll("path")
       .data(force.links())
       .enter().append("path")
       //.attr("class", function(d) { return "link " + d.type; })
       //.attr("marker-end", function(d) { return "url(#" + d.type + ")"; });
-      .attr("class", function(d) { return "link suit"; })
-      .attr("marker-end", function(d) { return "url(#" + "suit" + ")"; });
+      .attr("class", function(d) { return "link enabled"; })
+      .attr("marker-end", function(d) { return "url(#" + "enabled" + ")"; });
  
-    circle = svg.append("g").selectAll("circle")
+    var circle = svg.append("g").selectAll("circle")
       .data(force.nodes())
       .enter().append("circle")
       .attr("r", 6)
       .call(force.drag);
  
-    text = svg.append("g").selectAll("text")
+    var text = svg.append("g").selectAll("text")
       .data(force.nodes())
       .enter().append("text")
       .attr("x", 8)
       .attr("y", ".31em")
       .text(function(d) { return d.type; });
+
+    // Use elliptical arc path segments to doubly-encode directionality.
+    function tick() {
+      path.attr("d", linkArc);
+      circle.attr("transform", transform);
+      text.attr("transform", transform);
+    }
   }
 };
 
 /**
  * DOM query helper.
  */
-function $(selector, target = document) target.querySelector(selector);
+function $(selector, target = document) { return target.querySelector(selector); }
 
 /**
  * Rendering utils
  */
-// Use elliptical arc path segments to doubly-encode directionality.
-function tick() {
-  path.attr("d", linkArc);
-  circle.attr("transform", transform);
-  text.attr("transform", transform);
-}
-
 function linkArc(d) {
   var dx = d.target.x - d.source.x,
   dy = d.target.y - d.source.y,

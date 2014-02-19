@@ -7,29 +7,27 @@
 
 function spawnTest () {
   let [target, debuggee, front] = yield initBackend(SIMPLE_CONTEXT_URL);
-  let [_, __, [oscNode, gainNode], [connect1, connect2]] = yield Promise.all([
+  let [_, __, [destNode, oscNode, gainNode], [connect1, connect2]] = yield Promise.all([
     front.setup({ reload: true }),
     once(front, "start-context"),
-    get2(front, "create-node"),
+    get3(front, "create-node"),
     get2(front, "connect-node")
   ]);
 
+  let destType = yield destType.getType();
   let oscType = yield oscNode.getType();
   let gainType = yield gainNode.getType();
+  is(destType, "AudioDestinationNode", "WebAudioActor:create-node returns AudioNodeActor for AudioDestination");
   is(oscType, "OscillatorNode", "WebAudioActor:create-node returns AudioNodeActor");
   is(gainType, "GainNode", "WebAudioActor:create-node returns AudioNodeActor");
 
   let { source, dest } = connect1;
-  let sourceType = yield source.getType();
-  let destType = yield dest.getType();
-  is(sourceType, "OscillatorNode", "WebAudioActor:connect-node returns `source` node actor");
-  is(destType, "GainNode", "WebAudioActor:connect-node returns `dest` node actor");
-
+  is(source.actorID, oscNode.actorID, "WebAudioActor:connect-node returns correct actor with ID on source (osc->gain)");
+  is(dest.actorID, gainNode.actorID, "WebAudioActor:connect-node returns correct actor with ID on dest (osc->gain)");
+  
   let { source, dest } = connect2;
-  let sourceType = yield source.getType();
-  let destType = yield dest.getType();
-  is(sourceType, "GainNode", "WebAudioActor:connect-node returns `source` node actor");
-  is(destType, "AudioDestinationNode", "WebAudioActor:connect-node returns `dest` node actor for AudioDestinationNode");
+  is(source.actorID, gainNode.actorID, "WebAudioActor:connect-node returns correct actor with ID on source (gain->dest)");
+  is(dest.actorID, destNode.actorID, "WebAudioActor:connect-node returns correct actor with ID on dest (gain->dest)");
 
   yield removeTab(target.tab);
   finish();

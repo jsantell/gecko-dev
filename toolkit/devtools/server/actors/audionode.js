@@ -118,5 +118,7 @@ function cast (value, type) {
 let AudioNodeFront = protocol.FrontClass(AudioNodeActor, {
   initialize: function (client, form) {
     protocol.Front.prototype.initialize.call(this, client, form);
+    client.addActorPool(this);
+    this.manage(this);
   }
 });
