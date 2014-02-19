@@ -11,7 +11,11 @@ Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/devtools/Loader.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 
-Promise.defer = Cu.import("resource://gre/modules/Promise.jsm").Promise.defer;
+// Override DOM promises with Promise.jsm helpers
+const { defer, all } = Cu.import("resource://gre/modules/Promise.jsm", {}).Promise;
+Promise.defer = defer;
+Promise.all = all;
+
 const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
 const EventEmitter = require("devtools/shared/event-emitter");
 const {Tooltip} = require("devtools/shared/widgets/Tooltip");
@@ -23,16 +27,19 @@ const EVENTS = {
   // When new programs are received from the server.
   START_CONTEXT: "WebAudioEditor:StartContext",
 
-  // On node creation, connect and disconnect
+  // On node creation, connect and disconnect.
   CREATE_NODE: "WebAudioEditor:CreateNode",
   CONNECT_NODE: "WebAudioEditor:ConnectNode",
   DISCONNECT_NODE: "WebAudioEditor:DisconnectNode",
 
-  // On a node parameter's change
+  // On a node parameter's change.
   CHANGE_PARAM: "WebAudioEditor:ChangeParam",
 
-  // When the UI is reset from tab navigation
-  UI_RESET: "WebAudioEditor:UIReset"
+  // When the UI is reset from tab navigation.
+  UI_RESET: "WebAudioEditor:UIReset",
+  // When a param has been changed via the UI and successfully
+  // pushed via the actor to the raw audio node.
+  UI_SET_PARAM: "WebAudioEditor:UISetParam"
 };
 
 /**
@@ -67,22 +74,14 @@ function createGraphEdge (sourceActor, destActor) {
   graphEdges.push({ source: source, target: dest });
 }
 
-function actorToGraphNode (actor) {
-  for (let i = 0; i < graphNodes.length; i++) {
-    console.log("Are actors equal?", graphNodes[i].actor.actorID, actor.actorID);
-    if (equalActors(graphNodes[i].actor, actor))
-      return graphNodes[i];
-  }
-  return null;
-}
-
 /**
  * Initializes the web audio editor views
  */
 function startupWebAudioEditor() {
   return Promise.all([
     WebAudioEditorController.initialize(),
-    WebAudioGraphView.initialize()
+    WebAudioGraphView.initialize(),
+    WebAudioParamView.initialize()
   ]);
 }
 
@@ -92,7 +91,8 @@ function startupWebAudioEditor() {
 function shutdownWebAudioEditor() {
   return Promise.all([
     WebAudioEditorController.destroy(),
-    WebAudioGraphView.destroy()
+    WebAudioGraphView.destroy(),
+    WebAudioParamView.destroy()
   ]);
 }
 
@@ -143,6 +143,7 @@ let WebAudioEditorController = {
    * Called for each location change in the debugged tab.
    */
   _onTabNavigated: function(event) {
+                     console.log("on tab navigated");
     switch (event) {
       case "will-navigate": {
         Task.spawn(function() {
@@ -189,7 +190,7 @@ let WebAudioEditorController = {
    * Called when a node is connected to another node.
    */
   _onConnectNode: function({ source: sourceActor, dest: destActor }) {
-                    console.log("_onConnectNode", sourceActor.actorID, destActor.actorID);
+    console.log("_onConnectNode", sourceActor.actorID, destActor.actorID);
     let source = actorToGraphNode(sourceActor);
     let dest = actorToGraphNode(destActor);
     let deferred = Promise.defer();
@@ -255,4 +256,21 @@ function $(selector, target = document) target.querySelector(selector);
  */
 function equalActors (actor1, actor2) {
   return actor1.actorID === actor2.actorID;
+}
+
+function actorToGraphNode (actor) {
+  for (let i = 0; i < graphNodes.length; i++) {
+    if (equalActors(graphNodes[i].actor, actor))
+      return graphNodes[i];
+  }
+  return null;
+}
+
+/**
+ * TODO: Use as of now, unlanded Task.async
+ */
+function async (fn) {
+  return function (...args) {
+    return Task.spawn(fn.apply(this, args));
+  };
 }

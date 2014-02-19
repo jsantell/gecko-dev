@@ -65,8 +65,15 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
    *        Datatype that `value` should be cast to.
    */
   setParam: method(function (param, value, dataType) {
+    // Strip quotes because sometimes UIs include that for strings
+    if (dataType === "string") {
+      value = value.replace(/[\'\"]*/g, "");
+    }
     try {
-      this.node[param].value = cast(value, dataType);
+      if (isAudioParam(this.node, param))
+        this.node[param].value = cast(value, dataType);
+      else
+        this.node[param] = cast(value, dataType);
       return true;
     } catch (e) {
       return false;
@@ -86,7 +93,8 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
    *        Name of the AudioParam to fetch.
    */
   getParam: method(function (param) {
-    return cast(this.node[param].value, "string");
+    let value = isAudioParam(this.node, param) ? this.node[param].value : this.node[param];
+    return cast(value, "string");
   }, {
     request: {
       param: Arg(0, "string")
@@ -104,7 +112,7 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
  *        The datatype to cast `value` to.
  */
 function cast (value, type) {
-  if (type === "string")
+  if (!type || type === "string")
     return value;
   if (type === "number")
     return parseFloat(value);
@@ -112,6 +120,18 @@ function cast (value, type) {
     return value === "true";
 }
 
+/**
+ * Determines whether or not property is an AudioParam.
+ *
+ * @param AudioNode node
+ *        An AudioNode.
+ * @param String prop
+ *        Property of `node` to evaluate to see if it's an AudioParam.
+ * @return Boolean
+ */
+function isAudioParam (node, prop) {
+  return /AudioParam/.test(node[prop].toString());
+}
 /**
  * The corresponding Front object for the AudioNodeActor.
  */
