@@ -223,3 +223,59 @@ function get3 (front, eventName) { return getN(front, eventName, 3); }
 function getSpread (front, eventName) { return getN(front, eventName, 1, true); }
 function get2Spread (front, eventName) { return getN(front, eventName, 2, true); }
 function get3Spread (front, eventName) { return getN(front, eventName, 3, true); }
+
+function checkVariableView (view, index, hash) {
+  let scope = view.getScopeAtIndex(index);
+  let variables = Object.keys(hash);
+  variables.forEach(variable => {
+    let aVar = scope.get(variable);
+    is(aVar.target.querySelector(".name").getAttribute("value"), variable,
+      "Correct property name for " + variable);
+    is(aVar.target.querySelector(".value").getAttribute("value"), hash[variable],
+      "Correct property value of " + hash[variable] + " for " + variable);
+  });
+}
+
+function modifyVariableView (win, view, index, prop, value) {
+  let deferred = Promise.defer();
+  let scope = view.getScopeAtIndex(index);
+  let aVar = scope.get(prop);
+  aVar.expand();
+
+  executeSoon(() => {
+    let varValue = aVar.target.querySelector(".title > .value");
+    EventUtils.sendMouseEvent({ type: "mousedown" }, varValue, win);
+
+    win.on(win.EVENTS.UI_SET_PARAM, handleSetting);
+    win.on(win.EVENTS.UI_SET_PARAM_ERROR, handleSetting);
+
+    info("Setting " + value + " for " + prop + "....");
+    let varInput = aVar.target.querySelector(".title > .element-value-input");
+    setText(varInput, value);
+    EventUtils.sendKey("RETURN", win);
+  });
+
+  function handleSetting (eventName) {
+    info("HANDLE SETTING", eventName, win.EVENTS.UI_SET_PARAM);
+    win.off(win.EVENTS.UI_SET_PARAM, handleSetting);
+    win.off(win.EVENTS.UI_SET_PARAM_ERROR, handleSetting);
+    if (eventName === win.EVENTS.UI_SET_PARAM)
+      deferred.resolve();
+    if (eventName === win.EVENTS.UI_SET_PARAM_ERROR)
+      deferred.reject();
+  }
+
+  return deferred.promise;
+}
+
+function clearText (aElement) {
+  info("Clearing text...");
+  aElement.focus();
+  aElement.value = "";
+}
+
+function setText (aElement, aText) {
+  clearText(aElement);
+  info("Setting text: " + aText);
+  aElement.value = aText;
+}

@@ -46,16 +46,8 @@
   stroke-width: 1.5px;
 }
 
-#licensing {
-      fill: green;
-}
-
-.link.licensing {
-        stroke: green;
-}
-
-.link.resolved {
-          stroke-dasharray: 0,2 1;
+#enabled {
+  fill: #fff;
 }
 
 circle {
@@ -64,8 +56,14 @@ circle {
   stroke-width: 1.5px;
 }
 
+circle.selected {
+  fill: #ff0077;
+  stroke: #aaa;
+  stroke-width: 1.5px;
+}
+
 text {
-  font: 10px sans-serif;
+  font: 14px sans-serif;
   pointer-events: none;
   color: #fff;
   text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;

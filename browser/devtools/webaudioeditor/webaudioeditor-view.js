@@ -5,7 +5,7 @@
 
 Cu.import("resource:///modules/devtools/VariablesView.jsm");
 Cu.import("resource:///modules/devtools/VariablesViewController.jsm");
-
+const { debounce } = Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm", {});
 
 // Globals for d3 stuff
 const WIDTH = 500;
@@ -40,9 +40,6 @@ const NODE_PROPERTIES = {
   "AudioDestinationNode": {}
 };
 
-// Mapping of actors to ParamView Scopes
-const ParamViews = new WeakMap();
-
 /**
  * Takes a `graphNode` (has `actor`, `id` and `type`) and returns
  * a hash of
@@ -72,6 +69,7 @@ let WebAudioGraphView = {
    */
   initialize: function() {
     this._onGraphNodeClick = this._onGraphNodeClick.bind(this);
+    this.draw = debounce(this.draw.bind(this), 500);
   },
 
   /**
@@ -110,6 +108,17 @@ let WebAudioGraphView = {
     $("#graph").innerHTML = "";
   },
 
+  focusNode: function (actorID) {
+    // Remove class "selected" from all circles
+    Array.prototype.forEach.call($$("circle"), $circle => $circle.classList.remove("selected"));
+    // Add to "selected"
+    $("#graph-node-" + normalizeStr(actorID)).classList.add("selected");
+  },
+
+  blurNode: function (actorID) {
+    $("#graph-node-" + normalizeStr(actorID)).classList.remove("selected");
+  },
+
   /**
    * Event handlers
    */
@@ -131,8 +140,17 @@ let WebAudioGraphView = {
     // Clear out previous SVG information
     this.resetGraph();
 
-    var fakeNodes = [{type:"fakeType1" }, {type:"faketype2"} , {type:"faketype3"}];;
+    var fakeNodes = [{id: "1", type:"fakeType1" }, { id: "2", type:"faketype2"} , {id:"3", type:"faketype3"}];
     var fakeEdges = [{source:fakeNodes[0], target:fakeNodes[1]}, {source:fakeNodes[1], target:fakeNodes[2]}];
+
+    graphNodes.forEach(node => {
+      console.log('props', Object.keys(node));
+      Object.keys(node).map(prop => console.log(prop, ': ', node[prop]));
+    });
+
+    graphEdges.forEach(link => {
+      console.log('link: ', link.source.id, link.target.id);
+    });
 
     let force = d3.layout.force()
       .nodes(graphNodes)
@@ -173,6 +191,7 @@ let WebAudioGraphView = {
       .data(force.nodes())
       .enter().append("circle")
       .attr("r", 10)
+      .attr("id", d => normalizeStr("graph-node-" + d.id))
       .on("click", this._onGraphNodeClick)
       .on("mouseover", function (d) { console.log('over', d) })
       .on("mouseout", function (d) { console.log('out', d) })
@@ -191,7 +210,7 @@ let WebAudioGraphView = {
       circle.attr("transform", transform);
       text.attr("transform", transform);
     }
-  },
+  }
 
 };
 
@@ -223,12 +242,43 @@ let WebAudioParamView = {
     let node = getGraphNodeById(ownerScope._id);
     let propName = variable.name;
     let dataType = NODE_PROPERTIES[node.type][propName].type;
-    let success = yield node.actor.setParam(propName, value, dataType);
-    if (success) {
+    let errorMessage = yield node.actor.setParam(propName, value, dataType);
+    console.log('setting PARAM', propName, errorMessage);
+    if (!errorMessage) {
       ownerScope.get(propName).setGrip(cast(value, dataType));
       window.emit(EVENTS.UI_SET_PARAM, node.id, propName, value);
+    } else {
+      window.emit(EVENTS.UI_SET_PARAM_ERROR, node.id, propName, value);
     }
   }),
+
+  _onMouseOver: function (e) {
+    let $el = this;
+
+    // Get actorID
+    let match = $el.parentNode.id.match(/\(([^\)]*)\)/);
+    let id;
+    if (match && match.length === 2)
+      id = match[1];
+
+    // If no ID found for some reason, just get out of here
+    if (!id) return;
+    WebAudioGraphView.focusNode(id);
+  },
+
+  _onMouseOut: function (e) {
+    let $el = this;
+
+    // Get actorID
+    let match = $el.parentNode.id.match(/\(([^\)]*)\)/);
+    let id;
+    if (match && match.length === 2)
+      id = match[1];
+
+    // If no ID found for some reason, just get out of here
+    if (!id) return;
+    WebAudioGraphView.blurNode(id);
+  },
 
   addNode: async(function* (_, actor) {
     let graphNode = getGraphNodeById(actor.actorID);
@@ -243,26 +293,30 @@ let WebAudioParamView = {
     paramsScopeView._id = id;
     paramsScopeView.expanded = false;
 
+    paramsScopeView.addEventListener("mouseover", this._onMouseOver, false);
+    paramsScopeView.addEventListener("mouseout", this._onMouseOut, false);
+
     let params = yield getNodeParams(graphNode);
     params.forEach(({ param, value, type }) => {
       let descriptor = { value: value };
       paramsScopeView.addItem(param, descriptor);
     });
 
-    console.log("\n\n\n\n\n\nEVENTS.UI_ADD_NODE_LIST", actor.actorID);
     window.emit(EVENTS.UI_ADD_NODE_LIST, actor.actorID);
   }),
 
   removeNode: async(function* (graphNode) {
-    
+
   })
 
 }
 
 /**
- * DOM query helper.
+ * Strips non-alphanumeric characters and non-dashes from a string.
  */
-function $(selector, target = document) { return target.querySelector(selector); }
+function normalizeStr (s) {
+  return s.replace(/[^a-zA-Z0-9\-]/g, "-");
+}
 
 /**
  * Casts string `value` to specified `type`.

@@ -64,9 +64,7 @@ function createGraphNode (actor) {
   return actor.getType()
     .then(type => {
       node.type = type;
-      console.log("pushing node", actor.actorID);
       graphNodes.push(node);
-      console.log('emitting EVENTS.CREATE_NODE', actor);
       window.emit(EVENTS.CREATE_NODE, actor);
     });
 }
@@ -146,7 +144,6 @@ let WebAudioEditorController = {
    * Called for each location change in the debugged tab.
    */
   _onTabNavigated: function(event) {
-                     console.log("on tab navigated");
     switch (event) {
       case "will-navigate": {
         Task.spawn(function() {
@@ -184,7 +181,6 @@ let WebAudioEditorController = {
    * Called when a new node is created.
    */
   _onCreateNode: function(nodeActor) {
-                    console.log("_onCreateNode", nodeActor.actorID);
     createGraphNode(nodeActor).then(() => {
       WebAudioGraphView.refresh();
     });
@@ -194,7 +190,6 @@ let WebAudioEditorController = {
    * Called when a node is connected to another node.
    */
   _onConnectNode: function({ source: sourceActor, dest: destActor }) {
-    console.log("_onConnectNode", sourceActor.actorID, destActor.actorID);
     let source = actorToGraphNode(sourceActor);
     let dest = actorToGraphNode(destActor);
     let deferred = Promise.defer();
@@ -204,10 +199,8 @@ let WebAudioEditorController = {
     // the edge creation could be called before the graph node is actually
     // created. This way, we can check and listen for the event before
     // adding an edge.
-    console.log("CONNECT ACTORS FOUND:",source, dest);
     if (!source || !dest)
       window.on(EVENTS.CREATE_NODE, function createNodeListener (_, actor) {
-        console.log("ON CREATE_NODE:", actor, actor.actorID);
         if (equalActors(sourceActor, actor))
           source = actor;
         if (equalActors(destActor, actor))
@@ -252,7 +245,8 @@ EventEmitter.decorate(this);
 /**
  * DOM query helper.
  */
-function $(selector, target = document) target.querySelector(selector);
+function $(selector, target = document) { return target.querySelector(selector); }
+function $$(selector, target = document) { return target.querySelectorAll(selector); }
 
 /**
  * Compare `actorID` between two actors to determine if they're corresponding

@@ -51,9 +51,11 @@
          flex="1"
          hidden="true">
       <vbox id="web-audio-inspector">
-        <vbox id="web-audio-inspector-content"></vbox>
-        <label id="web-audio-inspector-label"
-               value="&webAudioEditorUI.audioNodeInspector;"/>
+        <scrollbox orient="vertical">
+          <vbox id="web-audio-inspector-content"></vbox>
+        </scrollbox>
+        <!-- <label id="web-audio-inspector-label"
+               value="&webAudioEditorUI.audioNodeInspector;"/> -->
       </vbox>
       <splitter class="devtools-side-splitter"/>
       <box id="web-audio-graph" class="devtools-responsive-container" flex="1">
