@@ -51,9 +51,7 @@
          flex="1"
          hidden="true">
       <vbox id="web-audio-inspector">
-        <vbox id="web-audio-inspector-waiting" flex="1"/>
-        <vbox id="web-audio-inspector-content" hidden="true">
-        </vbox>
+        <vbox id="web-audio-inspector-content"></vbox>
         <label id="web-audio-inspector-label"
                value="&webAudioEditorUI.audioNodeInspector;"/>
       </vbox>

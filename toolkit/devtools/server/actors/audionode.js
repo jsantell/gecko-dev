@@ -83,7 +83,8 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
       param: Arg(0, "string"),
       value: Arg(1, "string"),
       dataType: Arg(2, "string")
-    }
+    },
+    response: { text: RetVal("boolean") }
   }),
   
   /**

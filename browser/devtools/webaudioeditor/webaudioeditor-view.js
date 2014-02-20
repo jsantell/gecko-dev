@@ -36,8 +36,12 @@ const NODE_PROPERTIES = {
   },
   "GainNode": {
     "gain": { "type": "number" }
-  }
+  },
+  "AudioDestinationNode": {}
 };
+
+// Mapping of actors to ParamView Scopes
+const ParamViews = new WeakMap();
 
 /**
  * Takes a `graphNode` (has `actor`, `id` and `type`) and returns
@@ -45,7 +49,7 @@ const NODE_PROPERTIES = {
  */
 function getNodeParams (graphNode) {
   let { actor, id, type: nodeType } = graphNode;
-  let definition = NODE_PROPERTIES[nodeType];
+  let definition = NODE_PROPERTIES[nodeType] || {};
 
   // Fetch an array of objects containing `param` and `value` properties
   return Promise.all(
@@ -118,13 +122,10 @@ let WebAudioGraphView = {
    *        the actorID under `id` property.
    */
   _onGraphNodeClick: function (graphNode) {
-    WebAudioParamView.loadNodePane(graphNode);
+    WebAudioParamView.focusNode(graphNode);
   },
 
   draw: function () {
-    graphNodes.forEach(node => Object.keys(node).forEach(key => console.log(key, node[key])));
-    graphEdges.forEach(node => console.log('edge', 'src:', node.source, 'target:', node.target));
-
     console.log('Node count: ', graphNodes.length);
     console.log('Edge count: ', graphEdges.length);
     // Clear out previous SVG information
@@ -137,7 +138,7 @@ let WebAudioGraphView = {
       .nodes(graphNodes)
       .links(graphEdges)
       .size([WIDTH, HEIGHT])
-      .linkDistance(10)
+      .linkDistance(100)
       .charge(-1000)
       .on("tick", tick)
       .start();
@@ -204,47 +205,56 @@ let WebAudioParamView = {
         searchPlaceholder: "empty?"
       }));
     paramsView.eval = this._onEval.bind(this);
+    this.addNode = this.addNode.bind(this);
+    window.on(EVENTS.CREATE_NODE, this.addNode);
   },
 
   destroy: function() {},
+
+  resetUI: function () {
+    this._paramsView.empty();
+  },
 
   /**
    * Executed when an audio param is changed in the UI.
    */
   _onEval: async(function* (variable, value) {
-    let node = this.currentGraphNode;
+    let ownerScope = variable.ownerView;
+    let node = getGraphNodeById(ownerScope._id);
     let propName = variable.name;
     let dataType = NODE_PROPERTIES[node.type][propName].type;
-    yield node.actor.setParam(propName, value, dataType);
-    window.emit(EVENTS.UI_SET_PARAM);
-    this.loadNodePane(this.currentGraphNode);
+    let success = yield node.actor.setParam(propName, value, dataType);
+    if (success) {
+      ownerScope.get(propName).setGrip(cast(value, dataType));
+      window.emit(EVENTS.UI_SET_PARAM);
+    }
   }),
 
-  loadNodePane: async(function* (graphNode) {
+  addNode: async(function* (_, actor) {
+    let graphNode = getGraphNodeById(actor.actorID);
+             console.log("ADD NODE", actor, graphNode);
     let type = graphNode.type;
     let actor = graphNode.actor;
     let id = graphNode.id;
 
-    this.currentGraphNode = graphNode;
-
-    $("#web-audio-inspector-waiting").hidden = true;
-    $("#web-audio-inspector-content").hidden = false;
-
     let audioParamsTitle = type + " (" + id + ")";
     let paramsView = this._paramsView;
-
-    // Clear out the paramsView
-    paramsView.empty();
-
     let paramsScopeView = paramsView.addScope(audioParamsTitle);
-    paramsScopeView.expanded = true;
 
+    paramsScopeView._id = id;
+    paramsScopeView.expanded = false;
+
+    console.log("ADDING SCOPE", paramsScopeView, audioParamsTitle);
     let params = yield getNodeParams(graphNode);
     params.forEach(({ param, value, type }) => {
       let descriptor = { value: value };
       paramsScopeView.addItem(param, descriptor);
     });
   }),
+
+  removeNode: async(function* (graphNode) {
+    
+  })
 
 }
 
@@ -264,7 +274,7 @@ function $(selector, target = document) { return target.querySelector(selector);
  */
 function cast (value, type) {
   if (type === "string")
-    return value;
+    return value.replace(/[\'\"]*/, "");
   if (type === "number")
     return parseFloat(value);
   if (type === "boolean")

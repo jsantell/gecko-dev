@@ -150,8 +150,10 @@ let WebAudioEditorController = {
           // Make sure the backend is prepared to handle audio contexts.
           yield gFront.setup({ reload: false });
 
-          // Reset UI to show "Waiting for Audio Context..."
+          // Reset UI to show "Waiting for Audio Context..." and clear out
+          // current UI.
           WebAudioGraphView.resetUI();
+          WebAudioParamView.resetUI();
 
           // Clear out stored graph
           graphNodes.length = 0;
@@ -264,6 +266,10 @@ function actorToGraphNode (actor) {
       return graphNodes[i];
   }
   return null;
+}
+
+function getGraphNodeById (id) {
+  return actorToGraphNode({ actorID: id });
 }
 
 /**
