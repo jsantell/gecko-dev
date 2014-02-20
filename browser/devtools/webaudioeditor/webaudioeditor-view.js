@@ -8,8 +8,8 @@ Cu.import("resource:///modules/devtools/VariablesViewController.jsm");
 const { debounce } = Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm", {});
 
 // Globals for d3 stuff
-const WIDTH = 500;
-const HEIGHT = 400;
+const WIDTH = 1000;
+const HEIGHT = 600;
 
 const GENERIC_VARIABLES_VIEW_SETTINGS = {
   lazyEmpty: true,
@@ -37,7 +37,62 @@ const NODE_PROPERTIES = {
   "GainNode": {
     "gain": { "type": "number" }
   },
-  "AudioDestinationNode": {}
+  "DelayNode": {
+    "delayTime": { "type": "number" }
+  },
+  "AudioBufferSourceNode": {
+    "buffer": { "type": "string", "readonly": true },
+    "playbackRate": { "type": "number" },
+    "loop": { "type": "boolean" },
+    "loopStart": { "type": "number" },
+    "loopEnd": { "type": "number" },
+  },
+  "ScriptProcessorNode": {
+    "bufferSize": { "type": "number", "readonly": true }
+  },
+  "PannerNode": {
+    "panningModel": { "type": "string" },
+    "distanceModel": { "type": "string" },
+    "refDistance": { "type": "number" },
+    "maxDistance": { "type": "number" },
+    "rolloffFactor": { "type": "number" },
+    "coneInnerAngle": { "type": "number" },
+    "coneOuterAngle": { "type": "number" },
+    "coneOuterGain": { "type": "number" },
+  },
+  "ConvolverNode": {
+    "buffer": { "type": "string", "readonly": true },
+    "normalize": { "type": "boolean" }
+  },
+  "DynamicsCompressorNode": {
+    "threshold": { "type": "number" },
+    "knee": { "type": "number" },
+    "ratio": { "type": "number" },
+    "reduction": { "type": "number" },
+    "attack": { "type": "number" },
+    "release": { "type": "number" }
+  },
+  "BiquadFilterNode": {
+    "type": { "type": "string" },
+    "frequency": { "type": "number" },
+    "Q": { "type": "number" },
+    "detune": { "type": "number" },
+    "gain": { "type": "number" }
+  },
+  "WaveShaperNode": {
+    "curve": { "type": "string", "readonly": true },
+    "oversample": { "type": "string", "readonly": true }
+  },
+  "AnalyserNode": {
+    "fftSize": { "type": "number" },
+    "minDecibels": { "type": "number" },
+    "maxDecibels": { "type": "number" },
+    "smoothingTimeConstraint": { "type": "number" },
+    "frequencyBinCount": { "type": "number", "readonly": "true" },
+  },
+  "AudioDestinationNode": {},
+  "ChannelSplitterNode": {},
+  "ChannelMergerNode": {}
 };
 
 /**

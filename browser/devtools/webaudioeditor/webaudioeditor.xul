@@ -51,16 +51,14 @@
          flex="1"
          hidden="true">
       <vbox id="web-audio-inspector">
-        <scrollbox orient="vertical">
-          <vbox id="web-audio-inspector-content"></vbox>
-        </scrollbox>
-        <!-- <label id="web-audio-inspector-label"
-               value="&webAudioEditorUI.audioNodeInspector;"/> -->
+        <vbox id="web-audio-inspector-content" flex="1"></vbox>
+        <label id="web-audio-inspector-label"
+               value="&webAudioEditorUI.audioNodeInspector;"/>
       </vbox>
       <splitter class="devtools-side-splitter"/>
       <box id="web-audio-graph" class="devtools-responsive-container" flex="1">
-        <vbox flex="1">
-          <svg flex="1" id="graph" width="500" height="400" viewBox="0 0 1000 500"
+        <vbox>
+          <svg flex="1" id="graph" viewBox="0 0 1000 500"
               xmlns="http://www.w3.org/2000/svg"
               xmlns:xlink="http://www.w3.org/1999/xlink">
           </svg>
