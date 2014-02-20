@@ -74,9 +74,9 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
         this.node[param].value = cast(value, dataType);
       else
         this.node[param] = cast(value, dataType);
-      return true;
+      return "";
     } catch (e) {
-      return false;
+      return e.toString();
     }
   }, {
     request: {
@@ -84,7 +84,7 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
       value: Arg(1, "string"),
       dataType: Arg(2, "string")
     },
-    response: { text: RetVal("boolean") }
+    response: { text: RetVal("string") }
   }),
   
   /**
@@ -94,6 +94,9 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
    *        Name of the AudioParam to fetch.
    */
   getParam: method(function (param) {
+    // If property does not exist, just return "undefined"
+    if (!this.node[param])
+      return "undefined";
     let value = isAudioParam(this.node, param) ? this.node[param].value : this.node[param];
     return cast(value, "string");
   }, {

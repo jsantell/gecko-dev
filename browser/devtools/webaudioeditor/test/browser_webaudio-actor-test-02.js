@@ -9,12 +9,13 @@ function spawnTest () {
   let [target, debuggee, front] = yield initBackend(SIMPLE_NODES_URL);
   let [_, nodes] = yield Promise.all([
     front.setup({ reload: true }),
-    getN(front, "create-node", 13)
+    getN(front, "create-node", 14)
   ]);
 
   let actualTypes = yield Promise.all(nodes.map(node => node.getType()));
   let isSourceResult = yield Promise.all(nodes.map(node => node.isSource()));
   let expectedTypes = [
+    "AudioDestinationNode",
     "AudioBufferSourceNode", "ScriptProcessorNode", "AnalyserNode", "GainNode",
     "DelayNode", "BiquadFilterNode", "WaveShaperNode", "PannerNode", "ConvolverNode",
     "ChannelSplitterNode", "ChannelMergerNode", "DynamicsCompressorNode", "OscillatorNode"

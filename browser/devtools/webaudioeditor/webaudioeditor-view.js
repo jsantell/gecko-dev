@@ -226,13 +226,12 @@ let WebAudioParamView = {
     let success = yield node.actor.setParam(propName, value, dataType);
     if (success) {
       ownerScope.get(propName).setGrip(cast(value, dataType));
-      window.emit(EVENTS.UI_SET_PARAM);
+      window.emit(EVENTS.UI_SET_PARAM, node.id, propName, value);
     }
   }),
 
   addNode: async(function* (_, actor) {
     let graphNode = getGraphNodeById(actor.actorID);
-             console.log("ADD NODE", actor, graphNode);
     let type = graphNode.type;
     let actor = graphNode.actor;
     let id = graphNode.id;
@@ -244,12 +243,14 @@ let WebAudioParamView = {
     paramsScopeView._id = id;
     paramsScopeView.expanded = false;
 
-    console.log("ADDING SCOPE", paramsScopeView, audioParamsTitle);
     let params = yield getNodeParams(graphNode);
     params.forEach(({ param, value, type }) => {
       let descriptor = { value: value };
       paramsScopeView.addItem(param, descriptor);
     });
+
+    console.log("\n\n\n\n\n\nEVENTS.UI_ADD_NODE_LIST", actor.actorID);
+    window.emit(EVENTS.UI_ADD_NODE_LIST, actor.actorID);
   }),
 
   removeNode: async(function* (graphNode) {

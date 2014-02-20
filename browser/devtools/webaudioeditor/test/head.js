@@ -201,12 +201,13 @@ function teardown(aPanel) {
 // Takes a `front` object that is an event emitter, the number of
 // programs that should be listened to and waited on, and an optional
 // `onAdd` function that calls with the entire actors array on program link
-function getN (front, eventName, count) {
+function getN (front, eventName, count, spread) {
   let actors = [];
   let deferred = Promise.defer();
-  front.on(eventName, function onEvent (actor) {
+  front.on(eventName, function onEvent (...args) {
+    let actor = args[0];
     if (actors.length !== count) {
-      actors.push(actor);
+      actors.push(spread ? args : actor);
     }
     if (actors.length === count) {
       front.off(eventName, onEvent);
@@ -218,4 +219,7 @@ function getN (front, eventName, count) {
 
 function get (front, eventName) { return getN(front, eventName, 1); }
 function get2 (front, eventName) { return getN(front, eventName, 2); }
-function get3 (front, eventName) { return getN(front, eventName, 2); }
+function get3 (front, eventName) { return getN(front, eventName, 3); }
+function getSpread (front, eventName) { return getN(front, eventName, 1, true); }
+function get2Spread (front, eventName) { return getN(front, eventName, 2, true); }
+function get3Spread (front, eventName) { return getN(front, eventName, 3, true); }

@@ -39,7 +39,10 @@ const EVENTS = {
   UI_RESET: "WebAudioEditor:UIReset",
   // When a param has been changed via the UI and successfully
   // pushed via the actor to the raw audio node.
-  UI_SET_PARAM: "WebAudioEditor:UISetParam"
+  UI_SET_PARAM: "WebAudioEditor:UISetParam",
+
+  // When an audio node is added to the list pane
+  UI_ADD_NODE_LIST: "WebAudioEditor:UIAddNodeList"
 };
 
 /**
@@ -174,7 +177,6 @@ let WebAudioEditorController = {
    */
   _onStartContext: function() {
     WebAudioGraphView.showContent();
-                    console.log("_onStartContext");
     window.emit(EVENTS.START_CONTEXT);
   },
 
