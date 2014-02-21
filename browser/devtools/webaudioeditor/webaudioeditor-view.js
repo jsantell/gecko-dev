@@ -186,10 +186,11 @@ let WebAudioGraphView = {
    *        the actorID under `id` property.
    */
   _onGraphNodeClick: function (graphNode) {
-    WebAudioParamView.focusNode(graphNode);
+    WebAudioParamView.focusNode(graphNode.id);
   },
 
   draw: function () {
+    let view = this;
     console.log('Node count: ', graphNodes.length);
     console.log('Edge count: ', graphEdges.length);
     // Clear out previous SVG information
@@ -248,8 +249,8 @@ let WebAudioGraphView = {
       .attr("r", 10)
       .attr("id", d => normalizeStr("graph-node-" + d.id))
       .on("click", this._onGraphNodeClick)
-      .on("mouseover", function (d) { console.log('over', d) })
-      .on("mouseout", function (d) { console.log('out', d) })
+      .on("mouseover", d => view.focusNode(d.id))
+      .on("mouseout", d => view.blurNode(d.id))
       .call(force.drag);
 
     var text = svg.append("g").selectAll("text")
@@ -306,6 +307,24 @@ let WebAudioParamView = {
       window.emit(EVENTS.UI_SET_PARAM_ERROR, node.id, propName, value);
     }
   }),
+
+  getScopeByID: function (id) {
+    let view = this._paramsView;
+    for (let i = 0; i < view._store.length; i++) {
+      let scope = view.getScopeAtIndex(i);
+      if (scope._id === id)
+        return scope;
+    }
+    return null;
+  },
+
+  focusNode: function (id) {
+    let scope = this.getScopeByID(id);
+    if (!scope) return;
+
+    scope.focus();
+    scope.expand();
+  },
 
   _onMouseOver: function (e) {
     let $el = this;
