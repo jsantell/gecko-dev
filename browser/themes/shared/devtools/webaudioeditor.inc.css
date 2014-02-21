@@ -40,99 +40,6 @@
 }
 
 /* Context Graph */
-.link {
-  fill: none;
-  stroke: #fff;
-  stroke-width: 1.5px;
-}
-
-#enabled {
-  fill: #fff;
-}
-
-circle {
-  fill: #fff;
-  stroke: #aaa;
-  stroke-width: 1.5px;
-}
-
-circle.selected {
-  fill: #ff0077;
-  stroke: #aaa;
-  stroke-width: 1.5px;
-}
-
-text {
-  font: 14px sans-serif;
-  pointer-events: none;
-  color: #fff;
-  text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
-}
-
-/* Shaders pane */
-
-#shaders-pane {
-  min-width: 150px;
-}
-
-#shaders-pane + .devtools-side-splitter {
-  border-color: transparent;
-}
-
-.program-item {
-  padding: 2px 0px;
-}
-
-.side-menu-widget-item-checkbox {
-  -moz-appearance: none;
-  opacity: 0;
-  transition: opacity .15s ease-out 0s;
-}
-
-/* Only show the checkbox when the source is hovered over, is selected, or if it
- * is not checked. */
-.side-menu-widget-item:hover > .side-menu-widget-item-checkbox,
-.side-menu-widget-item.selected > .side-menu-widget-item-checkbox,
-.side-menu-widget-item-checkbox:not([checked]) {
-  opacity: 1;
-  transition: opacity .15s ease-out 0s;
-}
-
-.side-menu-widget-item-checkbox .checkbox-check {
-  -moz-appearance: none;
-  background: url(itemToggle.png);
-  background-repeat: no-repeat;
-  background-clip: content-box;
-  background-size: 32px 16px;
-  background-position: -16px 0;
-  width: 16px;
-  height: 16px;
-  border: 0;
-}
-
-.side-menu-widget-item-checkbox[checked] .checkbox-check {
-  background-position: 0 0;
-}
-
-/* Shader source editors */
-
-.editor-label {
-  padding: 1px 12px;
-  border-top: 1px solid;
-}
-
-.theme-dark .editor-label {
-  background: #343c45; /* Dark toolbars */
-  border-color: #000; /* Match the splitter color. */
-  color: #f5f7fa; /* Light foreground text */
-}
-
-.theme-light .editor-label {
-  background: #f0f1f2; /* Light toolbars */
-  border-color: #aaa; /* Match the splitter color. */
-  color: #585959; /* Grey foreground text */
-}
-
 .theme-dark .editor-label[selected] {
   background-color: #1d4f73; /* Select Highlight Blue */
   color: #f5f7fa; /* Light foreground text */
@@ -141,6 +48,67 @@ text {
 .theme-light .editor-label[selected] {
   background-color: #4c9ed9; /* Select Highlight Blue */
   color: #f5f7fa; /* Light foreground text */
+}
+
+.link {
+  fill: none;
+  stroke-width: 1.5px;
+}
+.theme-dark .link { stroke: #f5f7fa; }
+.theme-light .link { stroke: #585959; }
+
+.theme-dark #enabled { stroke: #f5f7fa; }
+.theme-light #enabled { stroke: #f5f7fa; }
+
+circle {
+  stroke-width: 1.5px;
+}
+.theme-dark circle { fill: #f5f7fa; stroke: #f8f9f9; }
+.theme-light circle { fill: #585959; stroke: #f5f7fa; }
+
+circle.selected {
+  stroke-width: 1.5px;
+  animation-duration: 1s;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+  animation-direction: alternate;
+}
+.theme-dark circle.selected { animation-name: dark-selected-glow; }
+.theme-light circle.selected { animation-name: light-selected-glow; }
+
+text {
+  font: 14px sans-serif;
+  pointer-events: none;
+}
+.theme-dark text {
+  fill: #fff;
+  /* text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff; */
+}
+.theme-light text {
+  fill: #000;
+}
+
+/**
+ * Animations for graphs
+ */
+@keyframes dark-selected-glow {
+  0% { fill: #1d4f73; }
+  100% { fill: #3CA3ED; }
+}
+@keyframes light-selected-glow {
+  0% { fill: #4c9ed9; }
+  100% { fill: #59BAFF; }
+}
+
+/**
+ * Inspector Styles
+ */
+
+.web-audio-inspector .error {
+  background-image: url(chrome://browser/skin/devtools/alerticon-warning.png);
+  -moz-appearance: none;
+  opacity: 0;
+  transition: opacity .5s ease-out 0s;
 }
 
 /* Responsive sidebar */
