@@ -30,13 +30,7 @@ function spawnTest() {
     "gain": 0
   });
 
-  let deferred = Promise.defer();
-  setTimeout(() => deferred.resolve(), 1000);
-  yield deferred.promise;
-
-  info("Modifying property of OscillatorNode");
   yield modifyVariableView(panel.panelWin, gVars, 1, "frequency", 1000);
-  info("Done modifying");
 
   checkVariableView(gVars, 1, {
     "frequency": 1000
