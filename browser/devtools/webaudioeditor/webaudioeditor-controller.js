@@ -75,6 +75,17 @@ function createGraphEdge (sourceActor, destActor) {
   graphEdges.push({ source: source, target: dest });
 }
 
+function removeGraphEdge (sourceActor) {
+  let source = actorToGraphNode(sourceActor);
+  for (let i = graphEdges.length - 1; i >= 0; i--) {
+    let edge = graphEdges[i];
+    if (edge.source === source) {
+      graphEdges.splice(i, 1);
+      window.emit(EVENTS.DISCONNECT_NODE, sourceActor, edge.target.actor);
+    }
+  }
+}
+
 /**
  * Initializes the web audio editor views
  */

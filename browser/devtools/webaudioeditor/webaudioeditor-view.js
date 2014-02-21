@@ -9,7 +9,7 @@ const { debounce } = Cu.import("resource://gre/modules/devtools/DevToolsUtils.js
 
 // Globals for d3 stuff
 const WIDTH = 1000;
-const HEIGHT = 600;
+const HEIGHT = 400;
 
 const GENERIC_VARIABLES_VIEW_SETTINGS = {
   lazyEmpty: true,

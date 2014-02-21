@@ -240,7 +240,7 @@ function modifyVariableView (win, view, index, prop, value) {
   let deferred = Promise.defer();
   let scope = view.getScopeAtIndex(index);
   let aVar = scope.get(prop);
-  aVar.expand();
+  scope.expand();
 
   executeSoon(() => {
     let varValue = aVar.target.querySelector(".title > .value");
