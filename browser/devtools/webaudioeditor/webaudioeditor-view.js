@@ -108,6 +108,7 @@ function getNodeParams (graphNode) {
     Object.keys(definition).map(param => {
       let dataType = definition[param].type;
       return actor.getParam(param).then(val => {
+        console.log(param, val, dataType, definition);
         return { param: param, value: cast(val, dataType), type: dataType };
       });
     })
@@ -199,14 +200,6 @@ let WebAudioGraphView = {
     var fakeNodes = [{id: "1", type:"fakeType1" }, { id: "2", type:"faketype2"} , {id:"3", type:"faketype3"}];
     var fakeEdges = [{source:fakeNodes[0], target:fakeNodes[1]}, {source:fakeNodes[1], target:fakeNodes[2]}];
 
-    graphNodes.forEach(node => {
-      console.log('props', Object.keys(node));
-      Object.keys(node).map(prop => console.log(prop, ': ', node[prop]));
-    });
-
-    graphEdges.forEach(link => {
-      console.log('link: ', link.source.id, link.target.id);
-    });
 
     let force = d3.layout.force()
       .nodes(graphNodes)

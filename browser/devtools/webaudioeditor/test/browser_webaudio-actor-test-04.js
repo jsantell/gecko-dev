@@ -1,0 +1,49 @@
+/* Any copyright is dedicated to the Public Domain.
+   http://creativecommons.org/publicdomain/zero/1.0/ */
+
+/**
+ * Test parameter fetching for all nodes
+ */
+
+function spawnTest () {
+  let [target, debuggee, front] = yield initBackend(SIMPLE_NODES_URL);
+  let [_, nodes] = yield Promise.all([
+    front.setup({ reload: true }),
+    getN(front, "create-node", 14)
+  ]);
+
+  let actualTypes = yield Promise.all(nodes.map(node => node.getType()));
+  let isSourceResult = yield Promise.all(nodes.map(node => node.isSource()));
+  let expectedTypes = [
+    "AudioDestinationNode",
+    "AudioBufferSourceNode", "ScriptProcessorNode", "AnalyserNode", "GainNode",
+    "DelayNode", "BiquadFilterNode", "WaveShaperNode", "PannerNode", "ConvolverNode",
+    "ChannelSplitterNode", "ChannelMergerNode", "DynamicsCompressorNode", "OscillatorNode"
+  ];
+
+  let props = [
+    {},
+    {"playbackRate": "44100", "loop": true, "loopStart": 0, "loopEnd": 0}
+  ];
+
+  let params = yield Promise.all(nodes.map((node, i) => {
+    return Promise.all(Object.keys(props[i]).map(prop => node.getParam(prop)));
+  }));
+
+  params.forEach((nodeParams, i) => {
+    let expected = props[i];
+    nodeParams.forEach(
+  });
+
+  expectedTypes.forEach((type, i) => {
+    is(actualTypes[i], type, type + " successfully created with correct type");
+    let shouldBeSource = type === "AudioBufferSourceNode" || type === "OscillatorNode";
+    if (shouldBeSource)
+      is(isSourceResult[i], true, type + "'s isSource() yields into `true`");
+    else
+      is(isSourceResult[i], false, type + "'s isSource() yields into `false`");
+  });
+
+  yield removeTab(target.tab);
+  finish();
+}
