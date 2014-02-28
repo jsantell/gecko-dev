@@ -17,7 +17,9 @@
   <script type="application/javascript;version=1.8"
           src="chrome://browser/content/devtools/theme-switching.js"/>
 
-  <script type="application/javascript" src="cytoscape.min.js"/>
+  <script type="application/javascript" src="d3.min.js"/>
+  <script type="application/javascript" src="dagre.min.js"/>
+  <script type="application/javascript" src="dagre-d3.min.js"/>
   <script type="application/javascript" src="webaudioeditor-controller.js"/>
   <script type="application/javascript" src="webaudioeditor-view.js"/>
 
@@ -57,14 +59,15 @@
       </vbox>
       <splitter class="devtools-side-splitter"/>
       <box id="web-audio-graph" class="devtools-responsive-container" flex="1">
-        <vbox>
-          <svg flex="1" id="graph" viewBox="0 0 1000 500"
+        <vbox flex="1">
+          <svg id="graph-svg" flex="1" viewBox="0 0 1000 500"
               xmlns="http://www.w3.org/2000/svg"
               xmlns:xlink="http://www.w3.org/1999/xlink">
+            <g id="graph-target" transform="translate(20,20)"/>
           </svg>
-          <label id="graph-label"
+          <!--<label id="graph-label"
                  class="plain editor-label"
-                 value="&webAudioEditorUI.audioContextGraph;"/>
+                 value="&webAudioEditorUI.audioContextGraph;"/>-->
         </vbox>
       </box>
     </box>

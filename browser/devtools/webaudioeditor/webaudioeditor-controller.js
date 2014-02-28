@@ -82,6 +82,7 @@ function removeGraphEdge (sourceActor) {
     if (edge.source === source) {
       graphEdges.splice(i, 1);
       window.emit(EVENTS.DISCONNECT_NODE, sourceActor, edge.target.actor);
+      return;
     }
   }
 }

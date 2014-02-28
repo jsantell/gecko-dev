@@ -125,7 +125,7 @@ let WebAudioGraphView = {
    */
   initialize: function() {
     this._onGraphNodeClick = this._onGraphNodeClick.bind(this);
-    this.draw = debounce(this.draw.bind(this), 500);
+    this.draw = debounce(this.draw.bind(this), 100);
   },
 
   /**
@@ -161,7 +161,7 @@ let WebAudioGraphView = {
   },
 
   resetGraph: function () {
-    $("#graph").innerHTML = "";
+    $("#graph-target").innerHTML = "";
   },
 
   focusNode: function (actorID) {
@@ -191,76 +191,57 @@ let WebAudioGraphView = {
   },
 
   draw: function () {
-    let view = this;
-    console.log('Node count: ', graphNodes.length);
-    console.log('Edge count: ', graphEdges.length);
     // Clear out previous SVG information
     this.resetGraph();
 
-    var fakeNodes = [{id: "1", type:"fakeType1" }, { id: "2", type:"faketype2"} , {id:"3", type:"faketype3"}];
-    var fakeEdges = [{source:fakeNodes[0], target:fakeNodes[1]}, {source:fakeNodes[1], target:fakeNodes[2]}];
+    let graph = new dagreD3.Digraph();
+    graphNodes.forEach(node => graph.addNode(node.id, { label: node.type }));
+    graphEdges.forEach(({source, target}) => graph.addEdge(null, source.id, target.id));
 
+    let renderer = new dagreD3.Renderer();
+    let oldDrawNodes = renderer.drawNodes();
+    renderer.drawNodes(function(graph, root) {
+      let svgNodes = oldDrawNodes(graph, root);
+      // Post-render manipulation of the nodes
+      svgNodes.attr("class", function(u) { return "type-" + u.label; });
+      return svgNodes;
+    });
 
-    let force = d3.layout.force()
-      .nodes(graphNodes)
-      .links(graphEdges)
-      .size([WIDTH, HEIGHT])
-      .linkDistance(100)
-      .charge(-1000)
-      .on("tick", tick)
-      .start();
+    // Override Dagre-d3's post render function by passing in our own.
+    // This way we can leave styles out of it.
+    renderer.postRender(function (graph, root) {
+      // TODO change arrowhead color depending on theme-dark/theme-light
+      //
+      //let color = window.classList.contains("theme-dark") ? "#f5f7fa" : "#585959";
+      if (graph.isDirected() && root.select("#arrowhead").empty()) {
+        root
+          .append("svg:defs")
+          .append("svg:marker")
+          .attr("id", "arrowhead")
+          .attr("viewBox", "0 0 10 10")
+          .attr("refX", 8)
+          .attr("refY", 5)
+          .attr("markerUnits", "strokewidth")
+          .attr("markerWidth", 8)
+          .attr("markerHeight", 5)
+          .attr("orient", "auto")
+          .attr("style", "fill: #f5f7fa")
+          .append("svg:path")
+          .attr("d", "M 0 0 L 10 5 L 0 10 z");
+      }
+    });
 
-    let svg = d3.select("#graph")
-      .attr("width", WIDTH)
-      .attr("height", HEIGHT);
+    let layout = dagreD3.layout().rankDir("LR");
+    renderer.layout(layout).run(graph, d3.select("#graph-target"));
 
-    // Per-type markers, as they don't inherit styles.
-    svg.append("defs").selectAll("marker")
-      .data(["enabled"])
-      .enter().append("marker")
-      .attr("id", function(d) { return d; })
-      .attr("viewBox", "0 -5 10 10")
-      .attr("refX", 15)
-      .attr("refY", -1.5)
-      .attr("markerWidth", 6)
-      .attr("markerHeight", 6)
-      .attr("orient", "auto")
-      .append("path")
-      .attr("d", "M0,-5L10,0L0,5");
-
-    var path = svg.append("g").selectAll("path")
-      .data(force.links())
-      .enter().append("path")
-      //.attr("class", function(d) { return "link " + d.type; })
-      //.attr("marker-end", function(d) { return "url(#" + d.type + ")"; });
-      .attr("class", function(d) { return "link enabled"; })
-      .attr("marker-end", function(d) { return "url(#" + "enabled" + ")"; });
-
-    var circle = svg.append("g").selectAll("circle")
-      .data(force.nodes())
-      .enter().append("circle")
-      .attr("r", 10)
-      .attr("id", d => normalizeStr("graph-node-" + d.id))
-      .on("click", this._onGraphNodeClick)
-      .on("mouseover", d => view.focusNode(d.id))
-      .on("mouseout", d => view.blurNode(d.id))
-      .call(force.drag);
-
-    var text = svg.append("g").selectAll("text")
-      .data(force.nodes())
-      .enter().append("text")
-      .attr("x", 8)
-      .attr("y", ".31em")
-      .text(function(d) { return d.type; });
-
-    // Use elliptical arc path segments to doubly-encode directionality.
-    function tick() {
-      path.attr("d", linkArc);
-      circle.attr("transform", transform);
-      text.attr("transform", transform);
-    }
+    // Handle the sliding and zooming of the graph
+    d3.select("#graph-svg")
+      .call(d3.behavior.zoom().on("zoom", function() {
+        var ev = d3.event;
+        d3.select("#graph-target")
+          .attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
+      }));
   }
-
 };
 
 let WebAudioParamView = {
@@ -269,8 +250,7 @@ let WebAudioParamView = {
   initialize: function () {
     let paramsView = this._paramsView = new VariablesView($("#web-audio-inspector-content"),
       Heritage.extend(GENERIC_VARIABLES_VIEW_SETTINGS, {
-        emptyText: "Empty",
-        searchPlaceholder: "empty?"
+        emptyText: "No audio nodes"
       }));
     paramsView.eval = this._onEval.bind(this);
     this.addNode = this.addNode.bind(this);
@@ -292,7 +272,7 @@ let WebAudioParamView = {
     let propName = variable.name;
     let dataType = NODE_PROPERTIES[node.type][propName].type;
     let errorMessage = yield node.actor.setParam(propName, value, dataType);
-    console.log('setting PARAM', propName, errorMessage);
+    console.log("setting PARAM", propName, errorMessage);
     if (!errorMessage) {
       ownerScope.get(propName).setGrip(cast(value, dataType));
       window.emit(EVENTS.UI_SET_PARAM, node.id, propName, value);
@@ -375,8 +355,7 @@ let WebAudioParamView = {
   removeNode: async(function* (graphNode) {
 
   })
-
-}
+};
 
 /**
  * Strips non-alphanumeric characters and non-dashes from a string.
@@ -395,24 +374,12 @@ function normalizeStr (s) {
  * @return Mixed
  */
 function cast (value, type) {
+  if (value == undefined)
+    return undefined;
   if (type === "string")
     return value.replace(/[\'\"]*/, "");
   if (type === "number")
     return parseFloat(value);
   if (type === "boolean")
     return value === "true";
-}
-
-/**
- * Rendering utils
- */
-function linkArc(d) {
-  var dx = d.target.x - d.source.x,
-  dy = d.target.y - d.source.y,
-  dr = Math.sqrt(dx * dx + dy * dy);
-  return "M" + d.source.x + "," + d.source.y + "A" + dr + "," + dr + " 0 0,1 " + d.target.x + "," + d.target.y;
-}
-
-function transform(d) {
-  return "translate(" + d.x + "," + d.y + ")";
 }
