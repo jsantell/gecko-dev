@@ -2,7 +2,7 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 /**
- * Test setParam/getParam on AudioNodes
+ * Test AudioNode#getParam() / AudioNode#setParam()
  */
 
 function spawnTest () {
