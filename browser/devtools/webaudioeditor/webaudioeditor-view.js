@@ -195,15 +195,41 @@ let WebAudioGraphView = {
     this.resetGraph();
 
     let graph = new dagreD3.Digraph();
-    graphNodes.forEach(node => graph.addNode(node.id, { label: node.type }));
-    graphEdges.forEach(({source, target}) => graph.addEdge(null, source.id, target.id));
+    graphNodes.forEach(node => graph.addNode(node.id, { label: node.type, id: node.id }));
+    graphEdges.forEach(({source, target}) => graph.addEdge(null, source.id, target.id, {
+      source: source.id,
+      target: target.id
+    }));
 
     let renderer = new dagreD3.Renderer();
+
+    // Post-render manipulation of the nodes
     let oldDrawNodes = renderer.drawNodes();
     renderer.drawNodes(function(graph, root) {
       let svgNodes = oldDrawNodes(graph, root);
-      // Post-render manipulation of the nodes
-      svgNodes.attr("class", function(u) { return "type-" + u.label; });
+      svgNodes.attr("class", (n) => {
+        let node = graph.node(n);
+        return "type-" + node.label;
+      });
+      svgNodes.attr("data-id", (n) => {
+        let node = graph.node(n);
+        return node.id;
+      });
+      return svgNodes;
+    });
+
+    // Post-render manipulation of edges
+    let oldDrawEdgePaths = renderer.drawEdgePaths();
+    renderer.drawEdgePaths(function(graph, root) {
+      let svgNodes = oldDrawEdgePaths(graph, root);
+      svgNodes.attr("data-source", (n) => {
+        let edge = graph.edge(n);
+        return edge.source;
+      });
+      svgNodes.attr("data-target", (n) => {
+        let edge = graph.edge(n);
+        return edge.target;
+      });
       return svgNodes;
     });
 
