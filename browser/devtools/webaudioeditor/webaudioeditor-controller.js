@@ -42,7 +42,10 @@ const EVENTS = {
   UI_SET_PARAM: "WebAudioEditor:UISetParam",
 
   // When an audio node is added to the list pane
-  UI_ADD_NODE_LIST: "WebAudioEditor:UIAddNodeList"
+  UI_ADD_NODE_LIST: "WebAudioEditor:UIAddNodeList",
+  
+  // When the Audio Context graph finishes rendering
+  UI_GRAPH_RENDERED: "WebAudioEditor:UIGraphRendered"
 };
 
 /**

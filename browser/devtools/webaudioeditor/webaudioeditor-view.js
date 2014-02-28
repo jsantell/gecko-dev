@@ -132,6 +132,9 @@ let WebAudioGraphView = {
    * Destruction function, called when the tool is closed.
    */
   destroy: function() {
+    if (this._zoomBinding) {
+      this._zoomBinding.on("zoom", null);
+    }
   },
 
   /**
@@ -260,13 +263,19 @@ let WebAudioGraphView = {
     let layout = dagreD3.layout().rankDir("LR");
     renderer.layout(layout).run(graph, d3.select("#graph-target"));
 
-    // Handle the sliding and zooming of the graph
-    d3.select("#graph-svg")
-      .call(d3.behavior.zoom().on("zoom", function() {
+    // Handle the sliding and zooming of the graph,
+    // store as `this._zoomBinding` so we can unbind during destruction
+    if (!this._zoomBinding) {
+      this._zoomBinding = d3.behavior.zoom();
+      this._zoomBinding.on("zoom", function () {
         var ev = d3.event;
         d3.select("#graph-target")
           .attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
-      }));
+      });
+    }
+
+    // Fire an event upon completed rendering
+    window.emit(EVENTS.UI_GRAPH_RENDERED);
   }
 };
 

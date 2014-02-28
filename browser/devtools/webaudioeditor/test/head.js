@@ -280,7 +280,7 @@ function setText (aElement, aText) {
   info("Setting text: " + aText);
   aElement.value = aText;
 }
-/*
+
 function findGraphEdge (win, source, target) {
   let selector = ".edgePaths .edgePath[data-source='" + source + "'][data-target='" + target + "']";
   return win.document.querySelector(selector);
@@ -290,7 +290,7 @@ function findGraphNode (win, node) {
   let selector = ".nodes > g[data-id='" + node + "']";
   return win.document.querySelector(selector);
 }
-*/
+
 const NODE_PROPERTIES = {
   "OscillatorNode": {
     "type": {
