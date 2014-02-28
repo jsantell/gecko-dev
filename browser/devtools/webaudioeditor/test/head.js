@@ -24,6 +24,7 @@ let Toolbox = devtools.Toolbox;
 
 const EXAMPLE_URL = "http://example.com/browser/browser/devtools/webaudioeditor/test/";
 const SIMPLE_CONTEXT_URL = EXAMPLE_URL + "doc_simple-context.html";
+const COMPLEX_CONTEXT_URL = EXAMPLE_URL + "doc_complex-context.html";
 const SIMPLE_NODES_URL = EXAMPLE_URL + "doc_simple-node-creation.html";
 
 // All tests are asynchronous.
@@ -35,7 +36,7 @@ registerCleanupFunction(() => {
   info("finish() was called, cleaning up...");
   Services.prefs.setBoolPref("devtools.debugger.log", gEnableLogging);
   Services.prefs.setBoolPref("devtools.webaudioeditor.enabled", gToolEnabled);
-  //Cu.forceGC();
+  Cu.forceGC();
 });
 
 function addTab(aUrl, aWindow) {
@@ -224,6 +225,7 @@ function get3 (front, eventName) { return getN(front, eventName, 3); }
 function getSpread (front, eventName) { return getN(front, eventName, 1, true); }
 function get2Spread (front, eventName) { return getN(front, eventName, 2, true); }
 function get3Spread (front, eventName) { return getN(front, eventName, 3, true); }
+function getNSpread (front, eventName, count) { return getN(front, eventName, count, true); }
 
 function checkVariableView (view, index, hash) {
   let scope = view.getScopeAtIndex(index);
