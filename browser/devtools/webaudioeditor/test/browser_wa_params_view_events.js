@@ -13,7 +13,6 @@ function spawnTest() {
 
   reload(target);
 
-  panel.on(EVENTS.UI_ADD_NODE_LIST, function(a,b) { info("\n\n\n\n\n\nAHH!!!\n\n\n\n\n"+a+b)});
   let [[dest, osc, gain], [[_, destID], [_, oscID], [_, gainID]]] = yield Promise.all([
     get3(gFront, "create-node"),
     get3Spread(panel.panelWin, EVENTS.UI_ADD_NODE_LIST)

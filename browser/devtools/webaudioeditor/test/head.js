@@ -35,6 +35,7 @@ registerCleanupFunction(() => {
   info("finish() was called, cleaning up...");
   Services.prefs.setBoolPref("devtools.debugger.log", gEnableLogging);
   Services.prefs.setBoolPref("devtools.webaudioeditor.enabled", gToolEnabled);
+  //Cu.forceGC();
 });
 
 function addTab(aUrl, aWindow) {
@@ -279,7 +280,17 @@ function setText (aElement, aText) {
   info("Setting text: " + aText);
   aElement.value = aText;
 }
+/*
+function findGraphEdge (win, source, target) {
+  let selector = ".edgePaths .edgePath[data-source='" + source + "'][data-target='" + target + "']";
+  return win.document.querySelector(selector);
+}
 
+function findGraphNode (win, node) {
+  let selector = ".nodes > g[data-id='" + node + "']";
+  return win.document.querySelector(selector);
+}
+*/
 const NODE_PROPERTIES = {
   "OscillatorNode": {
     "type": {
