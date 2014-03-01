@@ -69,7 +69,7 @@ svg {
   stroke: #f5f7fa;
 }
 
-.nodes rect.selected {
+.nodes g.selected rect {
   stroke-width: 1.5px;
   animation-duration: 1s;
   animation-iteration-count: infinite;
@@ -77,8 +77,8 @@ svg {
   animation-direction: alternate;
 }
 
-.theme-dark .nodes rect.selected { animation-name: dark-selected-glow; }
-.theme-light .nodes rect.selected { animation-name: light-selected-glow; }
+.theme-dark .nodes g.selected rect { animation-name: dark-selected-glow; }
+.theme-light .nodes g.selected rect { animation-name: light-selected-glow; }
 
 /* Text in nodes */
 text {

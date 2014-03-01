@@ -108,7 +108,6 @@ function getNodeParams (graphNode) {
     Object.keys(definition).map(param => {
       let dataType = definition[param].type;
       return actor.getParam(param).then(val => {
-        console.log(param, val, dataType, definition);
         return { param: param, value: cast(val, dataType), type: dataType };
       });
     })
@@ -168,14 +167,18 @@ let WebAudioGraphView = {
   },
 
   focusNode: function (actorID) {
-    // Remove class "selected" from all circles
-    Array.prototype.forEach.call($$("circle"), $circle => $circle.classList.remove("selected"));
+    // Remove class "selected" from all nodes
+    Array.prototype.forEach.call($$(".nodes > g"), $node => $node.classList.remove("selected"));
     // Add to "selected"
-    $("#graph-node-" + normalizeStr(actorID)).classList.add("selected");
+    this._getNodeByID(actorID).classList.add("selected");
   },
 
   blurNode: function (actorID) {
-    $("#graph-node-" + normalizeStr(actorID)).classList.remove("selected");
+    this._getNodeByID(actorID).classList.remove("selected");
+  },
+
+  _getNodeByID: function (actorID) {
+    return $(".nodes > g[data-id='" + actorID + "']");
   },
 
   /**
@@ -292,7 +295,9 @@ let WebAudioParamView = {
     window.on(EVENTS.CREATE_NODE, this.addNode);
   },
 
-  destroy: function() {},
+  destroy: function() {
+    window.off(EVENTS.CREATE_NODE, this.addNode);
+  },
 
   resetUI: function () {
     this._paramsView.empty();
@@ -307,7 +312,6 @@ let WebAudioParamView = {
     let propName = variable.name;
     let dataType = NODE_PROPERTIES[node.type][propName].type;
     let errorMessage = yield node.actor.setParam(propName, value, dataType);
-    console.log("setting PARAM", propName, errorMessage);
     if (!errorMessage) {
       ownerScope.get(propName).setGrip(cast(value, dataType));
       window.emit(EVENTS.UI_SET_PARAM, node.id, propName, value);
@@ -391,13 +395,6 @@ let WebAudioParamView = {
 
   })
 };
-
-/**
- * Strips non-alphanumeric characters and non-dashes from a string.
- */
-function normalizeStr (s) {
-  return s.replace(/[^a-zA-Z0-9\-]/g, "-");
-}
 
 /**
  * Casts string `value` to specified `type`.

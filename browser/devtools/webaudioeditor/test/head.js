@@ -259,7 +259,6 @@ function modifyVariableView (win, view, index, prop, value) {
   });
 
   function handleSetting (eventName) {
-    info("HANDLE SETTING", eventName, win.EVENTS.UI_SET_PARAM);
     win.off(win.EVENTS.UI_SET_PARAM, handleSetting);
     win.off(win.EVENTS.UI_SET_PARAM_ERROR, handleSetting);
     if (eventName === win.EVENTS.UI_SET_PARAM)
@@ -292,6 +291,15 @@ function findGraphNode (win, node) {
   let selector = ".nodes > g[data-id='" + node + "']";
   return win.document.querySelector(selector);
 }
+
+function click (win, element) {
+  EventUtils.sendMouseEvent({ type: "click" }, element, win);
+}
+
+function mouseOver (win, element) {
+  EventUtils.sendMouseEvent({ type: "mouseover" }, element, win);
+}
+
 
 const NODE_PROPERTIES = {
   "OscillatorNode": {
