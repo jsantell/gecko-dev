@@ -269,12 +269,12 @@ let WebAudioGraphView = {
     // Handle the sliding and zooming of the graph,
     // store as `this._zoomBinding` so we can unbind during destruction
     if (!this._zoomBinding) {
-      this._zoomBinding = d3.behavior.zoom();
-      this._zoomBinding.on("zoom", function () {
+      this._zoomBinding = d3.behavior.zoom().on("zoom", function () {
         var ev = d3.event;
         d3.select("#graph-target")
           .attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
       });
+      d3.select("svg").call(this._zoomBinding);
     }
 
     // Fire an event upon completed rendering
