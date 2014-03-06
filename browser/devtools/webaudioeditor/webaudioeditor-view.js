@@ -5,7 +5,7 @@
 
 Cu.import("resource:///modules/devtools/VariablesView.jsm");
 Cu.import("resource:///modules/devtools/VariablesViewController.jsm");
-const { debounce } = Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm", {});
+const { debounce } = require("sdk/lang/functional");
 
 // Globals for d3 stuff
 const WIDTH = 1000;

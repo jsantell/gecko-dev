@@ -17,8 +17,7 @@ Promise.defer = defer;
 Promise.all = all;
 
 const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
-const EventEmitter = require("devtools/shared/event-emitter");
-const {Tooltip} = require("devtools/shared/widgets/Tooltip");
+const EventEmitter = require("devtools/toolkit/event-emitter");
 const STRINGS_URI = "chrome://browser/locale/devtools/webaudioeditor.properties"
 console = Cu.import("resource://gre/modules/devtools/Console.jsm").console;
 

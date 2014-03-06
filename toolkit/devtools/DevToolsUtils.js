@@ -9,7 +9,6 @@ const { Ci, Cu } = require("chrome");
 
 let { Promise: promise } = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", {});
 let { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
-let setTimeout = Cu.import("resource://gre/modules/Timer.jsm", {}).setTimeout;
 
 /**
  * Turn the error |aError| into a string, without fail.
@@ -267,36 +266,4 @@ exports.isSafeJSObject = function isSafeJSObject(aObj) {
   }
 
   return Cu.isXrayWrapper(aObj);
-};
-
-/**
- * From underscore's `_.debounce`
- * http://underscorejs.org
- * (c) 2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Underscore may be freely distributed under the MIT license.
- */
-this.debounce = function debounce (fn, wait) {
-  var timeout, args, context, timestamp, result;
-
-  let later = function() {
-    let last = Date.now() - timestamp;
-    if (last < wait) {
-      timeout = setTimeout(later, wait - last);
-    } else {
-      timeout = null;
-      result = fn.apply(context, args);
-      context = args = null;
-    }
-  };
-
-  return function(...aArgs) {
-    context = this;
-    args = aArgs;
-    timestamp  = Date.now();
-    if (!timeout) {
-      timeout = setTimeout(later, wait);
-    }
-
-    return result;
-  };
 };
