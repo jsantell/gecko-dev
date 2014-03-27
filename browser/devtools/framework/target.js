@@ -190,6 +190,9 @@ function TabTarget(tab) {
     this._form = tab.form;
     this._client = tab.client;
     this._chrome = tab.chrome;
+
+    if (this._form && this._form.addonActor)
+      this._isAddon = true;
   }
 }
 
@@ -240,6 +243,10 @@ TabTarget.prototype = {
 
   get isRemote() {
     return !this.isLocalTab;
+  },
+
+  get isAddon() {
+    return this._isAddon;
   },
 
   get isLocalTab() {
