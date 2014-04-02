@@ -211,6 +211,7 @@ browser.jar:
   skin/classic/browser/devtools/styleeditor.css       (../shared/devtools/styleeditor.css)
 * skin/classic/browser/devtools/shadereditor.css      (devtools/shadereditor.css)
 * skin/classic/browser/devtools/canvasdebugger.css    (devtools/canvasdebugger.css)
+* skin/classic/browser/devtools/webaudioeditor.css    (devtools/webaudioeditor.css)
 * skin/classic/browser/devtools/debugger.css          (devtools/debugger.css)
 * skin/classic/browser/devtools/profiler.css          (devtools/profiler.css)
 * skin/classic/browser/devtools/netmonitor.css        (devtools/netmonitor.css)

@@ -8,5 +8,6 @@ TEST_DIRS += ['test']
 JS_MODULES_PATH = 'modules/devtools/webaudioeditor'
 
 EXTRA_JS_MODULES += [
+    'panel.js'
 ]
 
