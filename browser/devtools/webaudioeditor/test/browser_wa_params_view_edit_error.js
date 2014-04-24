@@ -27,6 +27,7 @@ function spawnTest() {
     "frequency": 1000
   });
 
+  gVars = null;
   yield teardown(panel);
   finish();
 }

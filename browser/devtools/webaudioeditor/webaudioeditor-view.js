@@ -240,6 +240,7 @@ let WebAudioParamView = {
    * Destruction function called when the tool cleans up.
    */
   destroy: function() {
+    this._paramsView = null;
     window.off(EVENTS.CREATE_NODE, this.addNode);
     window.off(EVENTS.DESTROY_NODE, this.removeNode);
   },

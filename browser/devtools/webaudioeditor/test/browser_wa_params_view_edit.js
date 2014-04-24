@@ -36,6 +36,7 @@ function spawnTest() {
     "type": "\"square\""
   });
 
+  gVars = null;
   yield teardown(panel);
   finish();
 }
