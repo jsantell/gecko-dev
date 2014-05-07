@@ -7,13 +7,16 @@ const {Cc, Ci, Cu, Cr} = require("chrome");
 
 const Services = require("Services");
 
+const { XPCOMUtils } = Cu.import("resource://gre/modules/XPCOMUtils.jsm", {});
 const { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
 const events = require("sdk/event/core");
 const protocol = require("devtools/server/protocol");
 const { CallWatcherActor, CallWatcherFront } = require("devtools/server/actors/call-watcher");
-
 const { on, once, off, emit } = events;
 const { method, Arg, Option, RetVal } = protocol;
+XPCOMUtils.defineLazyServiceGetter(this, "FinalizationWitnessService",
+                                   "@mozilla.org/toolkit/finalizationwitness;1",
+                                   "nsIFinalizationWitnessService");
 
 exports.register = function(handle) {
   handle.addTabActor(WebAudioActor, "webaudioActor");
@@ -22,6 +25,12 @@ exports.register = function(handle) {
 exports.unregister = function(handle) {
   handle.removeTabActor(WebAudioActor);
 };
+
+// Constant used to attach a "private" property containing the
+// FinalizationWitness on the AudioNode so we can be alerted during
+// garbage collection. While not guaranteed that properties are inaccessible by
+// other code, it provides sufficient protection to accidently using them.
+const N_WITNESS = "{private:witness:" + (Math.floor(Math.random() * 100)) + "}";
 
 const AUDIO_GLOBALS = [
   "AudioContext", "AudioNode"
@@ -107,14 +116,21 @@ const NODE_PROPERTIES = {
 };
 
 /**
- * Track an array of audio nodes
-
-/**
  * An Audio Node actor allowing communication to a specific audio node in the
  * Audio Context graph.
  */
 let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
   typeName: "audionode",
+
+  /**
+   * Weak reference to the underlying unwrapped AudioNode.
+   */
+  node: null,
+  
+  /**
+   * Name of the type of underyling AudioNode.
+   */
+  type: "",
 
   /**
    * Create the Audio Node actor.
@@ -126,9 +142,15 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
    */
   initialize: function (conn, node) {
     protocol.Actor.prototype.initialize.call(this, conn);
-    this.node = unwrap(node);
+    this.node = Cu.getWeakReference(node);
     try {
-      this.type = this.node.toString().match(/\[object (.*)\]$/)[1];
+      // AudioDestinationNodes become re-XrayWrapper (?!) when pulling
+      // from the weak reference, even though initial stored node was
+      // originally unwrapped.
+      if (/AudioDestinationNode/.test(node.toString()))
+        this.type = "AudioDestinationNode";
+      else
+        this.type = this.node.get().toString().match(/\[object (.*)\]$/)[1];
     } catch (e) {
       this.type = "";
     }
@@ -165,15 +187,16 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
    *        Value to change AudioParam to.
    */
   setParam: method(function (param, value) {
+    let node = this.node.get();
     // Strip quotes because sometimes UIs include that for strings
     if (typeof value === "string") {
       value = value.replace(/[\'\"]*/g, "");
     }
     try {
-      if (isAudioParam(this.node, param))
-        this.node[param].value = value;
+      if (isAudioParam(node, param))
+        node[param].value = value;
       else
-        this.node[param] = value;
+        node[param] = value;
       return undefined;
     } catch (e) {
       return constructError(e);
@@ -193,10 +216,11 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
    *        Name of the AudioParam to fetch.
    */
   getParam: method(function (param) {
+    let node = this.node.get();
     // If property does not exist, just return "undefined"
-    if (!this.node[param])
+    if (!node[param])
       return undefined;
-    let value = isAudioParam(this.node, param) ? this.node[param].value : this.node[param];
+    let value = isAudioParam(node, param) ? node[param].value : node[param];
     return value;
   }, {
     request: {
@@ -255,10 +279,15 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     protocol.Actor.prototype.initialize.call(this, conn);
     this.tabActor = tabActor;
     this._onContentFunctionCall = this._onContentFunctionCall.bind(this);
+    this._onDestroyNode = this._onDestroyNode.bind(this);
+    Services.obs.addObserver(this._onDestroyNode,
+      "webaudio-node-finalization-witness", false);
   },
 
   destroy: function(conn) {
     protocol.Actor.prototype.destroy.call(this, conn);
+    Services.obs.removeObserver(this._onDestroyNode,
+      "webaudio-node-finalization-witness");
     this.finalize();
   },
 
@@ -276,7 +305,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     this._initialized = true;
 
     // Weak map mapping audio nodes to their corresponding actors
-    this._nodeActors = new Map();
+    this._nodeActors = new WeakMap();
 
     this._callWatcher = new CallWatcherActor(this.conn, this.tabActor);
     this._callWatcher.onCall = this._onContentFunctionCall;
@@ -395,17 +424,22 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     "create-node": {
       type: "createNode",
       source: Arg(0, "audionode")
+    },
+    "destroy-node": {
+      type: "destroyNode",
+      id: Arg(0, "string")
     }
   },
 
   /**
    * Helper for constructing an AudioNodeActor, assigning to
    * internal weak map, and tracking via `manage` so it is assigned
-   * an `actorID`.
+   * an `actorID`. Takes an unwrapped AudioNode `node` as an argument.
    */
   _constructAudioNode: function (node) {
     let actor = new AudioNodeActor(this.conn, node);
     this.manage(actor);
+    bindWitness(node, actor.actorID);
     this._nodeActors.set(node, actor);
     return actor;
   },
@@ -477,7 +511,15 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
   _onCreateNode: function (node) {
     let actor = this._constructAudioNode(node);
     events.emit(this, "create-node", actor);
+  },
+
+  /**
+   * Called when a node is destroyed (garbage collected) via FinalizationWitness.
+   */
+  _onDestroyNode: function (id) {
+    events.emit(this, "destroy-node", id);
   }
+
 });
 
 /**
@@ -523,4 +565,10 @@ function constructError (err) {
 
 function unwrap (obj) {
   return XPCNativeWrapper.unwrap(obj);
+}
+
+function bindWitness (node, id) {
+  Object.defineProperty(node, N_WITNESS, { writable: true });
+  let witness = FinalizationWitnessService.make("webaudio-node-finalization-witness", id);
+  node[N_WITNESS] = witness;
 }
