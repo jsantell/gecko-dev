@@ -373,8 +373,6 @@ let WebAudioInspectorView = {
     propsView.empty();
 
     let audioParamsScope = propsView.addScope("AudioParams");
-    audioParamsScope.expanded = true;
-
     let props = yield node.getParams();
 
     // Disable AudioParams VariableView expansion
@@ -385,6 +383,8 @@ let WebAudioInspectorView = {
       let descriptor = { value: value };
       audioParamsScope.addItem(param, descriptor);
     });
+
+    audioParamsScope.expanded = true;
 
     window.emit(EVENTS.UI_PROPERTIES_TAB_RENDERED, node.id);
   }),
@@ -414,6 +414,7 @@ let WebAudioInspectorView = {
    * Executed when an audio prop is changed in the UI.
    */
   _onEval: Task.async(function* (variable, value) {
+             console.log("_onEval!!!");
     let ownerScope = variable.ownerView;
     let node = this._currentNode;
     let propName = variable.name;
@@ -433,8 +434,10 @@ let WebAudioInspectorView = {
     // Bug 994258
     if (!error) {
       ownerScope.get(propName).setGrip(value);
+      console.log("FIRING EVENTS.UI_SET_PARAM");
       window.emit(EVENTS.UI_SET_PARAM, node.id, propName, value);
     } else {
+      console.log("FIRING EVENTS.UI_SET_PARAM_ERROR");
       window.emit(EVENTS.UI_SET_PARAM_ERROR, node.id, propName, value);
     }
   }),

@@ -7,6 +7,7 @@
 
 const Ci = Components.interfaces;
 const Cu = Components.utils;
+let { console } = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
 
 const DBG_STRINGS_URI = "chrome://browser/locale/devtools/debugger.properties";
 const LAZY_EMPTY_DELAY = 150; // ms
@@ -2875,6 +2876,7 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
    * Makes this variable's value editable.
    */
   _activateValueInput: function(e) {
+  console.log("ACITAVEE VALUE INPUT");
     EditableValue.create(this, {
       onSave: aString => {
         if (this._linkedToInspector) {
@@ -3867,6 +3869,7 @@ Editable.prototype = {
 
     // Replace the specified label with a textbox input element.
     label.parentNode.replaceChild(input, label);
+    console.log("ENSURING ELEMENT IS VISIBLE!");
     this._variable._variablesView.boxObject.ensureElementIsVisible(input);
     input.select();
 

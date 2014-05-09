@@ -212,6 +212,7 @@ function waitForGraphRendered (front, nodeCount, edgeCount) {
 }
 
 function checkVariableView (view, index, hash, description = "") {
+  info("Checking Variable View");
   let scope = view.getScopeAtIndex(index);
   let variables = Object.keys(hash);
   variables.forEach(variable => {
@@ -227,14 +228,16 @@ function modifyVariableView (win, view, index, prop, value) {
   let deferred = Promise.defer();
   let scope = view.getScopeAtIndex(index);
   let aVar = scope.get(prop);
+  info("EXPANDING");
   scope.expand();
 
   // Must wait for the scope DOM to be available to receive
   // events
   executeSoon(() => {
+    info("MOUSEDOWN");
     let varValue = aVar.target.querySelector(".title > .value");
     EventUtils.sendMouseEvent({ type: "mousedown" }, varValue, win);
-
+    info("MOUSEDOWN -- R U SYNC?");
     win.on(win.EVENTS.UI_SET_PARAM, handleSetting);
     win.on(win.EVENTS.UI_SET_PARAM_ERROR, handleSetting);
 
@@ -288,6 +291,16 @@ function mouseOver (win, element) {
 
 function isVisible (element) {
   return !element.getAttribute("hidden");
+}
+
+/**
+ * Used in debugging, returns a promise that resolves in `n` milliseconds.
+ */
+function wait (n) {
+  let { promise, resolve } = Promise.defer();
+  setTimeout(resolve, n);
+  info("Waiting " + n/1000 + " seconds.");
+  return promise;
 }
 
 /**
