@@ -286,6 +286,10 @@ function mouseOver (win, element) {
   EventUtils.sendMouseEvent({ type: "mouseover" }, element, win);
 }
 
+function isVisible (element) {
+  return !element.getAttribute("hidden");
+}
+
 /**
  * List of audio node properties to test against expectations of the AudioNode actor
  */
