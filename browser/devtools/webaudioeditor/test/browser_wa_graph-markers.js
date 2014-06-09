@@ -48,7 +48,6 @@ function spawnTest() {
     "marker styling switches back to light once again.");
 
   yield teardown(panel);
-  finish();
 }
 
 /**

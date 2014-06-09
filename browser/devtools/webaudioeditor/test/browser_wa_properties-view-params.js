@@ -18,7 +18,7 @@ function spawnTest() {
 
   let [actors] = yield Promise.all([
     getN(gFront, "create-node", 14),
-    waitForGraphRendered(panelWin, 14, 0)
+    waitForGraphRendered(panelWin, 14, 13)
   ]);
   let nodeIds = actors.map(actor => actor.actorID);
   let types = [

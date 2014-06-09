@@ -46,6 +46,5 @@ function spawnTest() {
   });
 
   yield teardown(panel);
-  finish();
 }
 

@@ -50,5 +50,4 @@ function spawnTest() {
     "InspectorView still visible after several nodes have been clicked.");
 
   yield teardown(panel);
-  finish();
 }

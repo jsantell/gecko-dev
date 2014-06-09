@@ -42,5 +42,4 @@ function spawnTest () {
   });
 
   yield removeTab(target.tab);
-  finish();
 }

@@ -39,5 +39,4 @@ function spawnTest() {
     "Empty message shown when no AudioParams exist.");
 
   yield teardown(panel);
-  finish();
 }

@@ -15,13 +15,16 @@
 
       let ctx = new AudioContext();
       let NODE_CREATION_METHODS = [
-          "createBufferSource", "createScriptProcessor", "createAnalyser",
-          "createGain", "createDelay", "createBiquadFilter", "createWaveShaper",
-          "createPanner", "createConvolver", "createChannelSplitter", "createChannelMerger",
-          "createDynamicsCompressor", "createOscillator"
+        "createBufferSource", "createScriptProcessor", "createAnalyser",
+        "createGain", "createDelay", "createBiquadFilter", "createWaveShaper",
+        "createPanner", "createConvolver", "createChannelSplitter", "createChannelMerger",
+        "createDynamicsCompressor", "createOscillator"
       ];
-      let nodes = NODE_CREATION_METHODS.map(method => ctx[method]());
-
+      let nodes = NODE_CREATION_METHODS.map(method => {
+        let node = ctx[method]();
+        node.connect(ctx.destination);
+        return node;
+      });
     </script>
   </body>
 

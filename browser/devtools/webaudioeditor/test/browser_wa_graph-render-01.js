@@ -28,6 +28,5 @@ function spawnTest() {
   is(findGraphEdge(panelWin, gainId, destId).toString(), "[object SVGGElement]", "found edge for gain -> dest");
 
   yield teardown(panel);
-  finish();
 }
 
