@@ -32,6 +32,8 @@ loader.lazyImporter(this, "VariablesView", "resource:///modules/devtools/Variabl
 loader.lazyImporter(this, "VariablesViewController", "resource:///modules/devtools/VariablesViewController.jsm");
 loader.lazyImporter(this, "PluralForm", "resource://gre/modules/PluralForm.jsm");
 loader.lazyImporter(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm");
+loader.lazyImporter(this, "Heritage", "resource:///modules/devtools/ViewHelpers.jsm");
+
 
 const STRINGS_URI = "chrome://browser/locale/devtools/webconsole.properties";
 let l10n = new WebConsoleUtils.l10n(STRINGS_URI);
@@ -2984,7 +2986,6 @@ function JSTerm(aWebConsoleFrame)
   // Holds the index of the history entry that the user is currently viewing.
   // This is reset to this.history.length when this.execute() is invoked.
   this.historyPlaceHolder = 0;
-  this._objectActorsInVariablesViews = new Map();
 
   this._keyPress = this._keyPress.bind(this);
   this._inputEventHandler = this._inputEventHandler.bind(this);
@@ -3051,16 +3052,6 @@ JSTerm.prototype = {
   _lazyVariablesView: true,
 
   /**
-   * Holds a map between VariablesView instances and sets of ObjectActor IDs
-   * that have been retrieved from the server. This allows us to release the
-   * objects when needed.
-   *
-   * @private
-   * @type Map
-   */
-  _objectActorsInVariablesViews: null,
-
-  /**
    * Last input value.
    * @type string
    */
@@ -3081,6 +3072,14 @@ JSTerm.prototype = {
    * @type boolean
    */
   _autocompletePopupNavigated: false,
+
+  /**
+   * Options associated with the current VariablesView.
+   * Set by |this._updateVariablesView()|.
+   * @private
+   * @type object
+   */
+   _variablesViewOptions: null,
 
   /**
    * History of code that was executed.
@@ -3531,14 +3530,29 @@ JSTerm.prototype = {
    */
   _createVariablesView: function JST__createVariablesView(aOptions)
   {
-    let view = new VariablesView(aOptions.container);
-    view.toolbox = gDevTools.getToolbox(this.hud.owner.target);
-    view.searchPlaceholder = l10n.getStr("propertiesFilterPlaceholder");
-    view.emptyText = l10n.getStr("emptyPropertiesList");
-    view.searchEnabled = !aOptions.hideFilterInput;
-    view.lazyEmpty = this._lazyVariablesView;
+    // Determine whether we should disable updates to objects being inspected
+    // in the VariablesView.
+    let disableUpdates = this.hud.owner._browserConsole &&
+        !Services.prefs.getBoolPref("devtools.chrome.enabled");
 
-    VariablesViewController.attach(view, {
+    // The default flags for the VariablesView and VariablesViewController.
+    let viewFlags = {
+      toolbox: gDevTools.getToolbox(this.hud.owner.target),
+      searchPlaceholder: l10n.getStr("propertiesFilterPlaceholder"),
+      emptyText: l10n.getStr("emptyPropertiesList"),
+      searchEnabled: !aOptions.hideFilterInput,
+      lazyEmpty: this._lazyVariablesView,
+      eval: disableUpdates ? null : ((aVar, aValue) => {
+        this._variablesViewEvaluate(this._variablesViewOptions, aVar, aValue);
+      }),
+      switch: disableUpdates ? null : ((aVar, aNewName) => {
+        this._variablesViewSwitch(this._variablesViewOptions, aVar, aNewName);
+      }),
+      delete: disableUpdates ? null : ((aVar) => {
+        this._variablesViewDelete(this._variablesViewOptions, aVar);
+      }),
+    };
+    let controllerFlags = {
       getEnvironmentClient: aGrip => {
         return new EnvironmentClient(this.hud.proxy.client, aGrip);
       },
@@ -3554,7 +3568,24 @@ JSTerm.prototype = {
       simpleValueEvalMacro: simpleValueEvalMacro,
       overrideValueEvalMacro: overrideValueEvalMacro,
       getterOrSetterEvalMacro: getterOrSetterEvalMacro,
-    });
+    };
+
+    // TODO: Hack. Can we access the enum somehow?
+    let WEBCONSOLE = 0;
+
+    // Fetch any flags for the VariablesView or VariablesViewController set by
+    // addons.
+    let { viewFlags: addonViewFlags, controllerFlags : addonControllerFlags } =
+      gDevTools.getVariablesViewFlags(WEBCONSOLE, viewFlags, controllerFlags);
+
+    // Create VariablesView and VariablesViewController for this webconsole
+    // from combination of default and addon flags for each component.
+    let view = new VariablesView(
+      aOptions.container,
+      Heritage.extend(viewFlags, addonViewFlags));
+    VariablesViewController.attach(
+      view,
+      Heritage.extend(controllerFlags, addonControllerFlags));
 
     // Relay events from the VariablesView.
     view.on("fetched", (aEvent, aType, aVar) => {
@@ -3581,25 +3612,15 @@ JSTerm.prototype = {
     let view = aOptions.view;
     view.empty();
 
+    // Save these options so that we don't need to recreate
+    // view.eval/switch/delete every time.
+    this._variablesViewOptions = aOptions;
+
     // We need to avoid pruning the object inspection starting point.
     // That one is pruned when the console message is removed.
     view.controller.releaseActors(aActor => {
       return view._consoleLastObjectActor != aActor;
     });
-
-    if (aOptions.objectActor &&
-        (!this.hud.owner._browserConsole ||
-         Services.prefs.getBoolPref("devtools.chrome.enabled"))) {
-      // Make sure eval works in the correct context.
-      view.eval = this._variablesViewEvaluate.bind(this, aOptions);
-      view.switch = this._variablesViewSwitch.bind(this, aOptions);
-      view.delete = this._variablesViewDelete.bind(this, aOptions);
-    }
-    else {
-      view.eval = null;
-      view.switch = null;
-      view.delete = null;
-    }
 
     let { variable, expanded } = view.controller.setSingleVariable(aOptions);
     variable.evaluationMacro = simpleValueEvalMacro;
@@ -3641,7 +3662,9 @@ JSTerm.prototype = {
 
     let evalOptions = {
       frame: this.SELECTED_FRAME,
-      bindObjectActor: aOptions.objectActor.actor,
+      bindObjectActor: aOptions.objectActor
+        ? aOptions.objectActor.actor
+        : null
     };
 
     this.requestEvaluation(string, evalOptions).then(onEval, onEval);
@@ -3663,7 +3686,9 @@ JSTerm.prototype = {
 
     let evalOptions = {
       frame: this.SELECTED_FRAME,
-      bindObjectActor: aOptions.objectActor.actor,
+      bindObjectActor: aOptions.objectActor
+        ? aOptions.objectActor.actor
+        : null
     };
 
     this.requestEvaluation("delete _self" + aVar.symbolicName, evalOptions)
@@ -3690,7 +3715,9 @@ JSTerm.prototype = {
 
     let evalOptions = {
       frame: this.SELECTED_FRAME,
-      bindObjectActor: aOptions.objectActor.actor,
+      bindObjectActor: aOptions.objectActor
+        ? aOptions.objectActor.actor
+        : null
     };
 
     let newSymbolicName = aVar.ownerView.symbolicName + '["' + aNewName + '"]';

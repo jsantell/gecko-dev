@@ -170,7 +170,7 @@ VariablesViewController.prototype = {
   _populateFromObject: function(aTarget, aGrip) {
     let deferred = promise.defer();
 
-    let objectClient = this._getObjectClient(aGrip);
+    let objectClient = this._getObjectClient(aGrip, aTarget);
     objectClient.getPrototypeAndProperties(aResponse => {
       let { ownProperties, prototype } = aResponse;
       // 'safeGetterValues' is new and isn't necessary defined on old actors.

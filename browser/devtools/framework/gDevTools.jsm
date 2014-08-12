@@ -31,6 +31,8 @@ this.DevTools = function DevTools() {
   this._tools = new Map();     // Map<toolId, tool>
   this._toolboxes = new Map(); // Map<target, toolbox>
 
+  this._variablesViewFlagsCallbacks = new Map() // Map<source, callback>
+
   // destroy() is an observer's handler so we need to preserve context.
   this.destroy = this.destroy.bind(this);
   this._teardown = this._teardown.bind(this);
@@ -303,6 +305,39 @@ DevTools.prototype = {
    */
   getToolbox: function DT_getToolbox(target) {
     return this._toolboxes.get(target);
+  },
+
+  /**
+   * Registers a flags callback for the given source.
+   * Whenever this source attempts to instantiate a VariablesView and
+   * VariablesViewController, it will feed the default flags for these
+   * components to this callback to get overriding flags.
+   * @see browser/addon-sdk/lib/dev/tools/variables-view-flags.js for source
+   * enum.
+   */
+  setVariablesViewFlagsCallback:
+  function DT_setVariablesViewFlagsCallback(source, callback) {
+    if (this._variablesViewFlagsCallbacks.has(source)) {
+      // If there is already a callback for this source, return failure.
+      return false;
+    } else {
+      this._variablesViewFlagsCallbacks.set(source, callback);
+      return true;
+    }
+  },
+
+  /**
+   * Gets flags for the VariablesView and VariablesViewController from addons
+   * for a given source.
+   * Feeds default flags for these components to a callback registered by
+   * addons.
+   * @see browser/addon-sdk/lib/dev/tools/variables-view-flags.js for source
+   * enum.
+   */
+  getVariablesViewFlags:
+  function DT_getVariablesViewFlags(source, defaultViewFlags, defaultControllerFlags) {
+    let callback = this._variablesViewFlagsCallbacks.get(source);
+    return callback ? callback(defaultViewFlags, defaultControllerFlags) : {};
   },
 
   /**
