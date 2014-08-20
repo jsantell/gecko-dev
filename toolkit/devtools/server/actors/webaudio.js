@@ -115,6 +115,9 @@ const NODE_PROPERTIES = {
   }
 };
 
+// Incrementer for tagging AudioContexts uniquely.
+let contextIDs = 0;
+
 /**
  * An Audio Node actor allowing communication to a specific audio node in the
  * Audio Context graph.
@@ -130,7 +133,7 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
    * @param AudioNode node
    *        The AudioNode that was created.
    */
-  initialize: function (conn, node) {
+  initialize: function (conn, node, contextID) {
     protocol.Actor.prototype.initialize.call(this, conn);
 
     // Store ChromeOnly property `id` to identify AudioNode,
@@ -138,6 +141,8 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
     // ref to underlying node for controlling.
     this.nativeID = node.id;
     this.node = Cu.getWeakReference(node);
+    // Also store the AudioContext identifier
+    this.contextID = contextID;
 
     try {
       this.type = getConstructorName(node);
@@ -154,6 +159,16 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
     return this.type;
   }, {
     response: { type: RetVal("string") }
+  }),
+
+  /**
+   * Returns the context ID.
+   * @return Number
+   */
+  getContextID: method(function () {
+    return this.contextID;
+  }, {
+    response: { type: RetVal("number") }
   }),
 
   /**
@@ -317,6 +332,9 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     // AudioNodes that are no longer on this document.
     this._nativeToActorID.clear();
 
+    // Map of all AudioContexts associated with this document
+    this._contexts = new WeakMap();
+
     if (this._initialized) {
       return;
     }
@@ -381,17 +399,26 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
 
   _handleCreationCall: function (functionCall) {
     let { caller, result } = functionCall.details;
+
     // Keep track of the first node created, so we can alert
     // the front end that an audio context is being used since
     // we're not hooking into the constructor itself, just its
     // instance's methods.
     if (!this._firstNodeCreated) {
       // Fire the start-up event if this is the first node created
-      // and trigger a `create-node` event for the context destination
+      // for this document.
       this._onStartContext();
-      this._onCreateNode(caller.destination);
       this._firstNodeCreated = true;
     }
+
+    // If this is a new AudioContext for the document,
+    // create its corresponding destination node
+    // and tag the context with an ID in the WeakMap
+    if (!this._contexts.has(caller)) {
+      this._contexts.set(caller, contextIDs++)
+      this._onCreateNode(caller.destination);
+    }
+
     this._onCreateNode(result);
   },
 
@@ -464,7 +491,9 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
 
     this._instrumentParams(node);
 
-    let actor = new AudioNodeActor(this.conn, node);
+    let contextID = this._contexts.get(node.context);
+
+    let actor = new AudioNodeActor(this.conn, node, contextID);
     this.manage(actor);
     this._nativeToActorID.set(node.id, actor.actorID);
     return actor;
