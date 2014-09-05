@@ -247,10 +247,11 @@ let UI = {
       this.cancelBusyTimeout();
       this.unbusy();
     }, (e) => {
+      let message = operationDescription + (e ? (": " + e) : "");
       this.cancelBusyTimeout();
       let operationCanceled = e && e.canceled;
       if (!operationCanceled) {
-        UI.reportError("error_operationFail", operationDescription);
+        UI.reportError("error_operationFail", message);
         console.error(e);
       }
       this.unbusy();
@@ -714,68 +715,29 @@ let Cmds = {
   importPackagedApp: function(location) {
     return UI.busyUntil(Task.spawn(function* () {
 
-      let directory;
+      let directory = getPackagedDirectory(location);
 
-      if (!location) {
-        let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
-        fp.init(window, Strings.GetStringFromName("importPackagedApp_title"), Ci.nsIFilePicker.modeGetFolder);
-        let res = fp.show();
-        if (res == Ci.nsIFilePicker.returnCancel) {
-          return promise.resolve();
-        }
-        directory = fp.file;
-      } else {
-        directory = new FileUtils.File(location);
-      }
-
-      // Add project
-      let project = yield AppProjects.addPackaged(directory);
-
-      // Validate project
-      yield AppManager.validateProject(project);
-
-      // Select project
-      AppManager.selectedProject = project;
-    }), "importing packaged app");
-  },
-
-
-  importHostedApp: function(location) {
-    return UI.busyUntil(Task.spawn(function* () {
-      let ret = {value: null};
-
-      let url;
-      if (!location) {
-        Services.prompt.prompt(window,
-                               Strings.GetStringFromName("importHostedApp_title"),
-                               Strings.GetStringFromName("importHostedApp_header"),
-                               ret, null, {});
-        location = ret.value;
-      }
-
-      if (!location) {
+      if (!directory) {
+        // User cancelled directory selection
         return;
       }
 
-      // Clean location string and add "http://" if missing
-      location = location.trim();
-      try { // Will fail if no scheme
-        Services.io.extractScheme(location);
-      } catch(e) {
-        location = "http://" + location;
-      }
-
-      // Add project
-      let project = yield AppProjects.addHosted(location)
-
-      // Validate project
-      yield AppManager.validateProject(project);
-
-      // Select project
-      AppManager.selectedProject = project;
-    }), "importing hosted app");
+      yield importAndSelectApp(directory);
+    }), "importing packaged app");
   },
 
+  importHostedApp: function(location) {
+    return UI.busyUntil(Task.spawn(function* () {
+
+      let url = getHostedURL(location);
+
+      if (!url) {
+        return;
+      }
+
+      yield importAndSelectApp(url);
+    }), "importing hosted app");
+  },
 
   showProjectPanel: function() {
     let deferred = promise.defer();
@@ -1034,4 +996,67 @@ let Cmds = {
   showPrefs: function() {
     UI.selectDeckPanel("prefs");
   },
+};
+
+function getPackagedDirectory (location) {
+  let directory;
+  if (!location) {
+    let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
+    fp.init(window, Strings.GetStringFromName("importPackagedApp_title"), Ci.nsIFilePicker.modeGetFolder);
+    let res = fp.show();
+    if (res == Ci.nsIFilePicker.returnCancel) {
+      return null;
+    }
+    return fp.file;
+  } else {
+    return new FileUtils.File(location);
+  }
+}
+
+function getHostedURL (location) {
+  let ret = { value: null };
+
+  if (!location) {
+    Services.prompt.prompt(window,
+        Strings.GetStringFromName("importHostedApp_title"),
+        Strings.GetStringFromName("importHostedApp_header"),
+        ret, null, {});
+    location = ret.value;
+  }
+
+  if (!location) {
+    return null;
+  }
+
+  // Clean location string and add "http://" if missing
+  location = location.trim();
+  try { // Will fail if no scheme
+    Services.io.extractScheme(location);
+  } catch(e) {
+    location = "http://" + location;
+  }
+  return location;
+}
+
+function importAndSelectApp (source) {
+  return Task.spawn(function* () {
+    let isPackaged = !!source.path;
+    let project;
+    try {
+      project = yield AppProjects[isPackaged ? "addPackaged" : "addHosted"](source);
+    } catch (e) {
+      if (e === "Already added") {
+        // Select project that's already been added,
+        // and throw to display "Already added" message
+        AppManager.selectedProject = AppProjects.get(isPackaged ? source.path : source);
+        throw e;
+      }
+    }
+
+    // Validate project
+    yield AppManager.validateProject(project);
+
+    // Select project
+    AppManager.selectedProject = project;
+  });
 }
