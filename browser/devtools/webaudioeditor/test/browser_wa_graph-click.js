@@ -9,7 +9,7 @@
 let EVENTS = null;
 
 function spawnTest() {
-  let [target, debuggee, panel] = yield initWebAudioEditor(COMPLEX_CONTEXT_URL);
+  let [target, panel] = yield initWebAudioEditor(COMPLEX_CONTEXT_URL);
   let panelWin = panel.panelWin;
   let { gFront, $, $$, WebAudioInspectorView } = panelWin;
   EVENTS = panelWin.EVENTS;
