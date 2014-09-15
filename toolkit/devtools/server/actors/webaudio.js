@@ -13,6 +13,7 @@ const { on: systemOn, off: systemOff } = require("sdk/system/events");
 const protocol = require("devtools/server/protocol");
 const { CallWatcherActor, CallWatcherFront } = require("devtools/server/actors/call-watcher");
 const { ThreadActor } = require("devtools/server/actors/script");
+const { destroyOnPrefDisabled } = require("./utils/media-tools");
 
 const { on, once, off, emit } = events;
 const { method, Arg, Option, RetVal } = protocol;
@@ -294,9 +295,12 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
 
     this._onDestroyNode = this._onDestroyNode.bind(this);
     this._onGlobalDestroyed = this._onGlobalDestroyed.bind(this);
+
+    destroyOnPrefDisabled(this, "webaudioeditor");
   },
 
   destroy: function(conn) {
+             console.log("destroying", conn);
     protocol.Actor.prototype.destroy.call(this, conn);
     this.finalize();
   },
@@ -309,6 +313,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
    * See ContentObserver and WebAudioInstrumenter for more details.
    */
   setup: method(function({ reload }) {
+           console.log("SETUP", reload);
     // Used to track when something is happening with the web audio API
     // the first time, to ultimately fire `start-context` event
     this._firstNodeCreated = false;
@@ -399,12 +404,15 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
    * actor is destroyed.
    */
   finalize: method(function() {
+              console.log("FINALIZE");
     if (!this._initialized) {
       return;
     }
+
+    off(this.tabActor, "window-destroyed", this._onGlobalDestroyed);
     this.tabActor = null;
     this._initialized = false;
-    off(this.tabActor, "window-destroyed", this._onGlobalDestroyed);
+
     this._nativeToActorID = null;
     this._callWatcher.eraseRecording();
     this._callWatcher.finalize();
