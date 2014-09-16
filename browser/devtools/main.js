@@ -258,7 +258,7 @@ Tools.webAudioEditor = {
   panelLabel: l10n("ToolboxWebAudioEditor1.panelLabel", webAudioEditorStrings),
   tooltip: l10n("ToolboxWebAudioEditor1.tooltip", webAudioEditorStrings),
   isTargetSupported: function(target) {
-    return !target.isAddon;
+    return !target.isAddon && !target.chrome;
   },
   build: function(iframeWindow, toolbox) {
     let panel = new WebAudioEditorPanel(iframeWindow, toolbox);
