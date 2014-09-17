@@ -3,17 +3,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-Cu.import("resource:///modules/devtools/VariablesView.jsm");
-Cu.import("resource:///modules/devtools/VariablesViewController.jsm");
 const { debounce } = require("sdk/lang/functional");
-
-// Strings for rendering
-const EXPAND_INSPECTOR_STRING = L10N.getStr("expandInspector");
-const COLLAPSE_INSPECTOR_STRING = L10N.getStr("collapseInspector");
-
-// Store width as a preference rather than hardcode
-// TODO bug 1009056
-const INSPECTOR_WIDTH = 300;
 
 // Globals for d3 stuff
 // Default properties of the graph on rerender
@@ -34,19 +24,14 @@ const MARKER_STYLING = {
 
 const GRAPH_DEBOUNCE_TIMER = 100;
 
-const GENERIC_VARIABLES_VIEW_SETTINGS = {
-  searchEnabled: false,
-  editableValueTooltip: "",
-  editableNameTooltip: "",
-  preventDisableOnChange: true,
-  preventDescriptorModifiers: false,
-  eval: () => {}
-};
+// `audioNodes` events that should require the graph
+// to redraw
+const GRAPH_REDRAW_EVENTS = ["add", "connect", "disconnect", "remove"];
 
 /**
  * Functions handling the graph UI.
  */
-let WebAudioGraphView = {
+let ContextView = {
   /**
    * Initialization function, called when the tool is started.
    */
@@ -55,7 +40,7 @@ let WebAudioGraphView = {
     this._onThemeChange = this._onThemeChange.bind(this);
     this._onNodeSelect = this._onNodeSelect.bind(this);
     this._onStartContext = this._onStartContext.bind(this);
-    this._onDestroyNode = this._onDestroyNode.bind(this);
+    this._onEvent = this._onEvent.bind(this);
 
     this.draw = debounce(this.draw.bind(this), GRAPH_DEBOUNCE_TIMER);
     $('#graph-target').addEventListener('click', this._onGraphNodeClick, false);
@@ -63,7 +48,7 @@ let WebAudioGraphView = {
     window.on(EVENTS.THEME_CHANGE, this._onThemeChange);
     window.on(EVENTS.UI_INSPECTOR_NODE_SET, this._onNodeSelect);
     window.on(EVENTS.START_CONTEXT, this._onStartContext);
-    window.on(EVENTS.DESTROY_NODE, this._onDestroyNode);
+    audioNodes.on("*", this._onEvent);
   },
 
   /**
@@ -77,7 +62,7 @@ let WebAudioGraphView = {
     window.off(EVENTS.THEME_CHANGE, this._onThemeChange);
     window.off(EVENTS.UI_INSPECTOR_NODE_SET, this._onNodeSelect);
     window.off(EVENTS.START_CONTEXT, this._onStartContext);
-    window.off(EVENTS.DESTROY_NODE, this._onDestroyNode);
+    audioNodes.off("*", this._onEvent);
   },
 
   /**
@@ -143,7 +128,7 @@ let WebAudioGraphView = {
   },
 
   /**
-   * `draw` renders the ViewNodes currently available in `AudioNodes` with `AudioNodeConnections`,
+   * `draw` renders the ViewNodes currently available in `audioNodes` with `AudioNodeConnections`,
    * and `AudioParamConnections` and is throttled to be called at most every
    * `GRAPH_DEBOUNCE_TIMER` milliseconds. Is called whenever the audio context routing changes,
    * after being debounced.
@@ -153,12 +138,14 @@ let WebAudioGraphView = {
     this.clearGraph();
 
     let graph = new dagreD3.Digraph();
+    audioNodes.populateGraph(graph);
+    /*
     // An array of duples/tuples of pairs [sourceNode, destNode, param].
     // `param` is optional, indicating a connection to an AudioParam, rather than
     // an other AudioNode.
     let edges = [];
 
-    AudioNodes.forEach(node => {
+    audioNodes.forEach(node => {
       // Add node to graph
       graph.addNode(node.id, {
         type: node.type,                        // Just for storing type data
@@ -194,6 +181,7 @@ let WebAudioGraphView = {
 
       graph.addEdge(null, node.id, dest.id, options);
     });
+    */
 
     let renderer = new dagreD3.Renderer();
 
@@ -271,14 +259,18 @@ let WebAudioGraphView = {
       }
 
       // Reselect the previously selected audio node
-      let currentNode = WebAudioInspectorView.getCurrentAudioNode();
+      let currentNode = InspectorView.getCurrentAudioNode();
       if (currentNode) {
         this.focusNode(currentNode.id);
       }
 
-      // Fire an event upon completed rendering
-      let paramEdgeCount = edges.filter(p => !!p[2]).length;
-      window.emit(EVENTS.UI_GRAPH_RENDERED, AudioNodes.length, edges.length - paramEdgeCount, paramEdgeCount);
+      // Fire an event upon completed rendering, with extra information
+      // if in testing mode only.
+      let info = {};
+      if (gDevTools.testing) {
+        info = audioNodes.getInfo();
+      }
+      window.emit(EVENTS.UI_GRAPH_RENDERED, info.nodes, info.edges, info.paramEdges);
     });
 
     let layout = dagreD3.layout().rankDir("LR");
@@ -313,10 +305,13 @@ let WebAudioGraphView = {
   },
 
   /**
-   * Called when a node gets GC'd -- redraws the graph.
+   * Called when `audioNodes` fires an event -- most events (listed
+   * in GRAPH_REDRAW_EVENTS) qualify as a redraw event.
    */
-  _onDestroyNode: function () {
-    this.draw();
+  _onEvent: function (eventName, ...args) {
+    if (~GRAPH_REDRAW_EVENTS.indexOf(eventName)) {
+      this.draw();
+    }
   },
 
   _onNodeSelect: function (eventName, id) {
@@ -350,287 +345,3 @@ let WebAudioGraphView = {
     window.emit(EVENTS.UI_SELECT_NODE, node.getAttribute("data-id"));
   }
 };
-
-let WebAudioInspectorView = {
-
-  _propsView: null,
-
-  _currentNode: null,
-
-  _inspectorPane: null,
-  _inspectorPaneToggleButton: null,
-  _tabsPane: null,
-
-  /**
-   * Initialization function called when the tool starts up.
-   */
-  initialize: function () {
-    this._inspectorPane = $("#web-audio-inspector");
-    this._inspectorPaneToggleButton = $("#inspector-pane-toggle");
-    this._tabsPane = $("#web-audio-editor-tabs");
-
-    // Hide inspector view on startup
-    this._inspectorPane.setAttribute("width", INSPECTOR_WIDTH);
-    this.toggleInspector({ visible: false, delayed: false, animated: false });
-
-    this._onEval = this._onEval.bind(this);
-    this._onNodeSelect = this._onNodeSelect.bind(this);
-    this._onTogglePaneClick = this._onTogglePaneClick.bind(this);
-    this._onDestroyNode = this._onDestroyNode.bind(this);
-
-    this._inspectorPaneToggleButton.addEventListener("mousedown", this._onTogglePaneClick, false);
-    this._propsView = new VariablesView($("#properties-tabpanel-content"), GENERIC_VARIABLES_VIEW_SETTINGS);
-    this._propsView.eval = this._onEval;
-
-    window.on(EVENTS.UI_SELECT_NODE, this._onNodeSelect);
-    window.on(EVENTS.DESTROY_NODE, this._onDestroyNode);
-  },
-
-  /**
-   * Destruction function called when the tool cleans up.
-   */
-  destroy: function () {
-    this._inspectorPaneToggleButton.removeEventListener("mousedown", this._onTogglePaneClick);
-    window.off(EVENTS.UI_SELECT_NODE, this._onNodeSelect);
-    window.off(EVENTS.DESTROY_NODE, this._onDestroyNode);
-
-    this._inspectorPane = null;
-    this._inspectorPaneToggleButton = null;
-    this._tabsPane = null;
-  },
-
-  /**
-   * Toggles the visibility of the AudioNode Inspector.
-   *
-   * @param object visible
-   *        - visible: boolean indicating whether the panel should be shown or not
-   *        - animated: boolean indiciating whether the pane should be animated
-   *        - delayed: boolean indicating whether the pane's opening should wait
-   *                   a few cycles or not
-   *        - index: the index of the tab to be selected inside the inspector
-   * @param number index
-   *        Index of the tab that should be selected when shown.
-   */
-  toggleInspector: function ({ visible, animated, delayed, index }) {
-    let pane = this._inspectorPane;
-    let button = this._inspectorPaneToggleButton;
-
-    let flags = {
-      visible: visible,
-      animated: animated != null ? animated : true,
-      delayed: delayed != null ? delayed : true,
-      callback: () => window.emit(EVENTS.UI_INSPECTOR_TOGGLED, visible)
-    };
-
-    ViewHelpers.togglePane(flags, pane);
-
-    if (flags.visible) {
-      button.removeAttribute("pane-collapsed");
-      button.setAttribute("tooltiptext", COLLAPSE_INSPECTOR_STRING);
-    }
-    else {
-      button.setAttribute("pane-collapsed", "");
-      button.setAttribute("tooltiptext", EXPAND_INSPECTOR_STRING);
-    }
-
-    if (index != undefined) {
-      pane.selectedIndex = index;
-    }
-  },
-
-  /**
-   * Returns a boolean indicating whether or not the AudioNode inspector
-   * is currently being shown.
-   */
-  isVisible: function () {
-    return !this._inspectorPane.hasAttribute("pane-collapsed");
-  },
-
-  /**
-   * Takes a AudioNodeView `node` and sets it as the current
-   * node and scaffolds the inspector view based off of the new node.
-   */
-  setCurrentAudioNode: function (node) {
-    this._currentNode = node || null;
-
-    // If no node selected, set the inspector back to "no AudioNode selected"
-    // view.
-    if (!node) {
-      $("#web-audio-editor-details-pane-empty").removeAttribute("hidden");
-      $("#web-audio-editor-tabs").setAttribute("hidden", "true");
-      window.emit(EVENTS.UI_INSPECTOR_NODE_SET, null);
-    }
-    // Otherwise load up the tabs view and hide the empty placeholder
-    else {
-      $("#web-audio-editor-details-pane-empty").setAttribute("hidden", "true");
-      $("#web-audio-editor-tabs").removeAttribute("hidden");
-      this._setTitle();
-      this._buildPropertiesView()
-        .then(() => window.emit(EVENTS.UI_INSPECTOR_NODE_SET, this._currentNode.id));
-    }
-  },
-
-  /**
-   * Returns the current AudioNodeView.
-   */
-  getCurrentAudioNode: function () {
-    return this._currentNode;
-  },
-
-  /**
-   * Empties out the props view.
-   */
-  resetUI: function () {
-    this._propsView.empty();
-    // Set current node to empty to load empty view
-    this.setCurrentAudioNode();
-
-    // Reset AudioNode inspector and hide
-    this.toggleInspector({ visible: false, animated: false, delayed: false });
-  },
-
-  /**
-   * Sets the title of the Inspector view
-   */
-  _setTitle: function () {
-    let node = this._currentNode;
-    let title = node.type.replace(/Node$/, "");
-    $("#web-audio-inspector-title").setAttribute("value", title);
-  },
-
-  /**
-   * Reconstructs the `Properties` tab in the inspector
-   * with the `this._currentNode` as it's source.
-   */
-  _buildPropertiesView: Task.async(function* () {
-    let propsView = this._propsView;
-    let node = this._currentNode;
-    propsView.empty();
-
-    let audioParamsScope = propsView.addScope("AudioParams");
-    let props = yield node.getParams();
-
-    // Disable AudioParams VariableView expansion
-    // when there are no props i.e. AudioDestinationNode
-    this._togglePropertiesView(!!props.length);
-
-    props.forEach(({ param, value, flags }) => {
-      let descriptor = {
-        value: value,
-        writable: !flags || !flags.readonly,
-      };
-      audioParamsScope.addItem(param, descriptor);
-    });
-
-    audioParamsScope.expanded = true;
-
-    window.emit(EVENTS.UI_PROPERTIES_TAB_RENDERED, node.id);
-  }),
-
-  _togglePropertiesView: function (show) {
-    let propsView = $("#properties-tabpanel-content");
-    let emptyView = $("#properties-tabpanel-content-empty");
-    (show ? propsView : emptyView).removeAttribute("hidden");
-    (show ? emptyView : propsView).setAttribute("hidden", "true");
-  },
-
-  /**
-   * Returns the scope for AudioParams in the
-   * VariablesView.
-   *
-   * @return Scope
-   */
-  _getAudioPropertiesScope: function () {
-    return this._propsView.getScopeAtIndex(0);
-  },
-
-  /**
-   * Event handlers
-   */
-
-  /**
-   * Executed when an audio prop is changed in the UI.
-   */
-  _onEval: Task.async(function* (variable, value) {
-    let ownerScope = variable.ownerView;
-    let node = this._currentNode;
-    let propName = variable.name;
-    let error;
-
-    if (!variable._initialDescriptor.writable) {
-      error = new Error("Variable " + propName + " is not writable.");
-    } else {
-      // Cast value to proper type
-      try {
-        let number = parseFloat(value);
-        if (!isNaN(number)) {
-          value = number;
-        } else {
-          value = JSON.parse(value);
-        }
-        error = yield node.actor.setParam(propName, value);
-      }
-      catch (e) {
-        error = e;
-      }
-    }
-
-    // TODO figure out how to handle and display set prop errors
-    // and enable `test/brorwser_wa_properties-view-edit.js`
-    // Bug 994258
-    if (!error) {
-      ownerScope.get(propName).setGrip(value);
-      window.emit(EVENTS.UI_SET_PARAM, node.id, propName, value);
-    } else {
-      window.emit(EVENTS.UI_SET_PARAM_ERROR, node.id, propName, value);
-    }
-  }),
-
-  /**
-   * Called on EVENTS.UI_SELECT_NODE, and takes an actorID `id`
-   * and calls `setCurrentAudioNode` to scaffold the inspector view.
-   */
-  _onNodeSelect: function (_, id) {
-    this.setCurrentAudioNode(getViewNodeById(id));
-
-    // Ensure inspector is visible when selecting a new node
-    this.toggleInspector({ visible: true });
-  },
-
-  /**
-   * Called when clicking on the toggling the inspector into view.
-   */
-  _onTogglePaneClick: function () {
-    this.toggleInspector({ visible: !this.isVisible() });
-  },
-
-  /**
-   * Called when `DESTROY_NODE` is fired to remove the node from props view if
-   * it's currently selected.
-   */
-  _onDestroyNode: function (_, id) {
-    if (this._currentNode && this._currentNode.id === id) {
-      this.setCurrentAudioNode(null);
-    }
-  }
-};
-
-/**
- * Takes an element in an SVG graph and iterates over
- * ancestors until it finds the graph node container. If not found,
- * returns null.
- */
-
-function findGraphNodeParent (el) {
-  // Some targets may not contain `classList` property
-  if (!el.classList)
-    return null;
-
-  while (!el.classList.contains("nodes")) {
-    if (el.classList.contains("audionode"))
-      return el;
-    else
-      el = el.parentNode;
-  }
-  return null;
-}
