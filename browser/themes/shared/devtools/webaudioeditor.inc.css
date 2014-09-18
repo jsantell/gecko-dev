@@ -139,7 +139,7 @@ text {
   transition: opacity .5s ease-out 0s;
 }
 
-#inspector-pane-toggle {
+#inspector-pane-toggle, #visualization-graph-toggle {
   background: none;
   box-shadow: none;
   border: none;

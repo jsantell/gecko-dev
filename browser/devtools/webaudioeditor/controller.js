@@ -11,10 +11,12 @@ let audioNodes = new AudioNodesCollection();
  * Initializes the web audio editor views
  */
 function startupWebAudioEditor() {
+  console.log("startupWebAudioEditor")
   return all([
     WebAudioEditorController.initialize(),
     ContextView.initialize(),
-    InspectorView.initialize()
+    InspectorView.initialize(),
+    VisualizationView.initialize()
   ]);
 }
 
@@ -26,6 +28,7 @@ function shutdownWebAudioEditor() {
     WebAudioEditorController.destroy(),
     ContextView.destroy(),
     InspectorView.destroy(),
+    VisualizationView.initialize()
   ]);
 }
 
@@ -37,6 +40,7 @@ let WebAudioEditorController = {
    * Listen for events emitted by the current tab target.
    */
   initialize: function() {
+                console.log("STARTUP CONTROLLER");
     telemetry.toolOpened("webaudioeditor");
     this._onTabNavigated = this._onTabNavigated.bind(this);
     this._onThemeChange = this._onThemeChange.bind(this);
@@ -50,7 +54,9 @@ let WebAudioEditorController = {
     gFront.on("disconnect-node", this._onDisconnectNode);
     gFront.on("change-param", this._onChangeParam);
     gFront.on("destroy-node", this._onDestroyNode);
-
+    console.log('can i bind');
+    gFront.on("stream-time-data", this._onTimeData);
+    console.log('yus');
     // Hook into theme change so we can change
     // the graph's marker styling, since we can't do this
     // with CSS
@@ -174,6 +180,10 @@ let WebAudioEditorController = {
     window.emit(EVENTS.START_CONTEXT);
   },
 
+  _onStreamData: function (data) {
+    window.emit(EVENTS.STREAM_DATA);
+  },
+
   /**
    * Called when a new node is created. Creates an `AudioNodeView` instance
    * for tracking throughout the editor.
@@ -219,5 +229,12 @@ let WebAudioEditorController = {
    */
   _onChangeParam: function({ actor, param, value }) {
     window.emit(EVENTS.CHANGE_PARAM, audioNodes.get(actor.actorID), param, value);
+  },
+
+  /**
+   * When audio data is streamed from the content for visualizations.
+   */
+  _onTimeData: function (data) {
+    window.emit(EVENTS.STREAM_DATA, data);
   }
 };

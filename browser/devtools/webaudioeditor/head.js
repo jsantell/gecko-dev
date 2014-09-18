@@ -34,6 +34,8 @@ const EVENTS = {
   // When the devtools theme changes.
   THEME_CHANGE: "WebAudioEditor:ThemeChange",
 
+  STREAM_DATA: "WebAudioEditor:StreamData",
+
   // When the UI is reset from tab navigation.
   UI_RESET: "WebAudioEditor:UIReset",
 

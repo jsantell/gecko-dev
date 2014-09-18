@@ -41,6 +41,7 @@ let InspectorView = {
    * Initialization function called when the tool starts up.
    */
   initialize: function () {
+    console.log("INITIALIZING INSPECTOR");
     this._tabsPane = $("#web-audio-editor-tabs");
 
     // Set up view controller
@@ -57,6 +58,7 @@ let InspectorView = {
     this._onNodeSelect = this._onNodeSelect.bind(this);
     this._onDestroyNode = this._onDestroyNode.bind(this);
 
+    console.log("MAKING PROPS VIEW");
     this._propsView = new VariablesView($("#properties-tabpanel-content"), GENERIC_VARIABLES_VIEW_SETTINGS);
     this._propsView.eval = this._onEval;
 

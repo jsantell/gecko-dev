@@ -13,6 +13,7 @@ const { on: systemOn, off: systemOff } = require("sdk/system/events");
 const protocol = require("devtools/server/protocol");
 const { CallWatcherActor, CallWatcherFront } = require("devtools/server/actors/call-watcher");
 const { ThreadActor } = require("devtools/server/actors/script");
+const { setInterval } = require("sdk/timers");
 
 const { on, once, off, emit } = events;
 const { method, Arg, Option, RetVal } = protocol;
@@ -384,11 +385,9 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     // we're not hooking into the constructor itself, just its
     // instance's methods.
     if (!this._firstNodeCreated) {
+      this._audioContext = caller;
       // Fire the start-up event if this is the first node created
-      // and trigger a `create-node` event for the context destination
       this._onStartContext();
-      this._onCreateNode(caller.destination);
-      this._firstNodeCreated = true;
     }
     this._onCreateNode(result);
   },
@@ -402,6 +401,8 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     if (!this._initialized) {
       return;
     }
+    this._shadowAnalyser = null;
+    this._audioContext = null;
     this.tabActor = null;
     this._initialized = false;
     off(this.tabActor, "window-destroyed", this._onGlobalDestroyed);
@@ -448,7 +449,11 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     "destroy-node": {
       type: "destroyNode",
       source: Arg(0, "audionode")
-    }
+    },
+    "stream-time-data": {
+      type: "streamTimeData",
+      data: Arg(0, "array:number")
+    },
   },
 
   /**
@@ -501,17 +506,29 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
   },
 
   /**
-   * Called on first audio node creation, signifying audio context usage
+   * Called on first audio node creation, signifying audio context usage,
+   * creating the destination node, along with its shadow destination.
    */
   _onStartContext: function () {
     systemOn("webaudio-node-demise", this._onDestroyNode);
+
+    this._shadowAnalyser = new ShadowAnalyser(this._callWatcher, this._audioContext);
+    this._onCreateNode(this._audioContext.destination);
+    this._firstNodeCreated = true;
+
     emit(this, "start-context");
+
+    this._shadowAnalyser.streamTimeDomain(this, "stream-time-data");
   },
 
   /**
    * Called when one audio node is connected to another.
    */
   _onConnectNode: function (source, dest) {
+    // If connecting to destination, reroute to the shadow analyser
+    if (dest === this._audioContext.destination) {
+      this._shadowAnalyser.connectFrom(source);
+    }
     let sourceActor = this._getActorByNativeID(source.id);
     let destActor = this._getActorByNativeID(dest.id);
     emit(this, "connect-node", {
@@ -675,3 +692,30 @@ function createObjectGrip (value) {
     class: getConstructorName(value)
   };
 }
+
+function ShadowAnalyser (watcher, ctx) {
+  this._callWatcher = watcher;
+  this._audioContext = ctx;
+
+  this._callWatcher.pauseRecording();
+  let analyser = this._node = ctx.createAnalyser();
+  analyser.connect(ctx.destination);
+  this._callWatcher.resumeRecording();
+
+  this._data = new Uint8Array(analyser.frequencyBinCount);
+}
+
+ShadowAnalyser.prototype.connectFrom = function ShadowAnalyserConnect (source) {
+  this._callWatcher.pauseRecording();
+  source.connect(this._node);
+  this._callWatcher.resumeRecording();
+}
+
+ShadowAnalyser.prototype.streamTimeDomain = function ShadowAnalyserStreamTimeDomain (target, name) {
+  setInterval(() => {
+  this._node.getByteFrequencyData(this._data);
+  // Cast to an array on each tick, this has to be expensive...
+  // protocol.js does not support typed objects, so we have to serialize it
+  emit(target, name, { data: Array.apply([], this._data) });
+  }, 100);
+};

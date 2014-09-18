@@ -36,6 +36,7 @@ let ContextView = {
    * Initialization function, called when the tool is started.
    */
   initialize: function() {
+                console.log("INITIALIZE CONTEXT");
     this._onGraphNodeClick = this._onGraphNodeClick.bind(this);
     this._onThemeChange = this._onThemeChange.bind(this);
     this._onNodeSelect = this._onNodeSelect.bind(this);

@@ -37,7 +37,8 @@ WebAudioEditorPanel.prototype = {
         this.panelWin.gTarget = this.target;
 
         this.panelWin.gFront = new WebAudioFront(this.target.client, this.target.form);
-        return this.panelWin.startupWebAudioEditor();
+        console.log("TRYING STARTUP");
+        return this.panelWin.startupWebAudioEditor().then(() => console.log("STARTUPDONE"), console.error);
       })
       .then(() => {
         this.isReady = true;

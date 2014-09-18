@@ -98,6 +98,7 @@ let ToggleMixin = {
   },
 
   _onToggle: function () {
+               console.log("TOGGLING", this.isVisible());
     this._viewController({ visible: !this.isVisible() });
   }
 }

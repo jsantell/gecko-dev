@@ -25,6 +25,7 @@
   <script type="application/javascript" src="webaudioeditor/views/utils.js"/>
   <script type="application/javascript" src="webaudioeditor/views/context.js"/>
   <script type="application/javascript" src="webaudioeditor/views/inspector.js"/>
+  <script type="application/javascript" src="webaudioeditor/views/visualization.js"/>
 
   <vbox class="theme-body" flex="1">
     <hbox id="reload-notice"
@@ -56,25 +57,30 @@
          flex="1"
          hidden="true">
       <toolbar id="web-audio-toolbar" class="devtools-toolbar">
+        <toolbarbutton id="visualization-graph-toggle" class="devtools-toolbarbutton"
+                       tabindex="0"/>
         <spacer flex="1"></spacer>
         <toolbarbutton id="inspector-pane-toggle" class="devtools-toolbarbutton"
-                       tabindex="0"/>
+                       tabindex="1"/>
       </toolbar>
       <splitter class="devtools-horizontal-splitter"/>
       <box id="web-audio-content-pane"
            class="devtools-responsive-container"
            flex="1">
-        <hbox flex="1">
-          <box id="web-audio-graph" flex="1">
-            <vbox flex="1">
+        <vbox flex="1">
+          <vbox id="web-audio-graph" flex="1">
+            <hbox flex="1" id="visualization-graph" hidden="true">
+              <canvas id="visualization-graph-canvas" xmlns="http://www.w3.org/1999/xhtml"></canvas>
+            </hbox>
+            <hbox flex="1">
               <svg id="graph-svg"
                   xmlns="http://www.w3.org/2000/svg"
                   xmlns:xlink="http://www.w3.org/1999/xlink">
                 <g id="graph-target" transform="translate(20,20)"/>
               </svg>
-            </vbox>
-          </box>
-        </hbox>
+            </hbox>
+          </vbox>
+        </vbox>
         <splitter class="devtools-side-splitter"/>
         <vbox id="web-audio-inspector" hidden="true">
           <hbox class="devtools-toolbar">
