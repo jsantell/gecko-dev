@@ -37,6 +37,14 @@
   -  on a button that remvoes all the recordings. -->
 <!ENTITY profilerUI.clearButton "Clear">
 
+<!-- LOCALIZATION NOTE (profilerUI.overview.selectTimeView): This string is
+  -  displayed on a button that selects the "time" view in the overview panel. -->
+<!ENTITY profilerUI.overview.selectTimeView "View by time">
+
+<!-- LOCALIZATION NOTE (profilerUI.timeilne.selectFrameView): This string is
+  -  displayed on a button that selects the "frame" view in the overview panel. -->
+<!ENTITY profilerUI.overview.selectFrameView "View by frame">
+
 <!-- LOCALIZATION NOTE (profilerUI.table.*): These strings are displayed
   -  in the call tree headers for a recording. -->
 <!ENTITY profilerUI.table.totalDuration   "Total Time (ms)">

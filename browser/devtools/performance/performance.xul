@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<?xml-stylesheet href="chrome://browser/skin/" type="text/css"?>
+<?xml-stylesheet href="chrome://browser/content/devtools/widgets.css" type="text/css"?>
+<?xml-stylesheet href="chrome://browser/skin/devtools/common.css" type="text/css"?>
+<?xml-stylesheet href="chrome://browser/skin/devtools/widgets.css" type="text/css"?>
+<?xml-stylesheet href="chrome://browser/skin/devtools/performance.css" type="text/css"?>
+<!DOCTYPE window [
+  <!ENTITY % profilerDTD SYSTEM "chrome://browser/locale/devtools/profiler.dtd">
+  %profilerDTD;
+]>
+
+<window xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+  <script src="chrome://browser/content/devtools/theme-switching.js"/>
+  <script type="application/javascript" src="performance.js"/>
+
+  <vbox class="theme-body" flex="1">
+    <toolbar id="performance-toolbar" class="devtools-toolbar">
+      <hbox id="performance-toolbar-controls-profiles" class="devtools-toolbarbutton-group">
+        <toolbarbutton id="record-button"
+                       class="devtools-toolbarbutton"
+                       oncommand="RecordingsListView._onRecordButtonClick()"
+                       tooltiptext="&profilerUI.recordButton.tooltip;"/>
+        <toolbarbutton id="clear-button"
+                       class="devtools-toolbarbutton"
+                       oncommand="RecordingsListView._onClearButtonClick()"
+                       label="&profilerUI.clearButton;"/>
+      </hbox>
+      <spacer flex="1"></spacer>
+      <hbox id="performance-toolbar-controls-storage" class="devtools-toolbarbutton-group">
+        <toolbarbutton id="import-button"
+                       class="devtools-toolbarbutton"
+                       oncommand="RecordingsListView._onImportButtonClick()"
+                       label="&profilerUI.importButton;"/>
+      </hbox>
+    </toolbar>
+    <splitter class="devtools-horizontal-splitter" />
+    <box id="overview-pane"
+      class="devtools-responsive-container"
+      flex="1">
+      <box id="overview-controls"
+           class="devtools-toolbarbutton-group">
+        <toolbarbutton id="overview-time-button"
+                       class="devtools-toolbarbutton"
+                       tooltiptext="&profilerUI.overview.selectTimeView;"
+                       tabindex="0" />
+        <toolbarbutton id="overview-frame-button"
+                       class="devtools-toolbarbutton"
+                       tooltiptext="&profilerUI.overview.selectFrameView;"
+                       tabindex="1" />
+      </box>
+      <box id="overview-timeline-view">
+        <vbox id="framerate-view"></vbox>
+        <!-- <vbox id="overview-view"></vbox> -->
+        <!-- <vbox id="memory-view"></vbox> -->
+      </box>
+      <box id="overview-frame-view"></box>
+    </box>
+    <splitter class="devtools-horizontal-splitter" />
+    <box id="profile-pane"
+         class="devtools-responsive-container"
+         flex="1">
+      <hbox id="empty-notice"
+            class="notice-container"
+            align="center"
+            pack="center"
+            flex="1">
+        <label value="&profilerUI.emptyNotice1;"/>
+        <button id="profiling-notice-button"
+                class="devtools-toolbarbutton"
+                standalone="true"
+                oncommand="RecordingsListView._onRecordButtonClick()"/>
+        <label value="&profilerUI.emptyNotice2;"/>
+      </hbox>
+
+      <hbox id="recording-notice"
+            class="notice-container"
+            align="center"
+            pack="center"
+            flex="1">
+        <label value="&profilerUI.stopNotice1;"/>
+        <button id="profiling-notice-button"
+                class="devtools-toolbarbutton"
+                standalone="true"
+                checked="true"
+                oncommand="RecordingsListView._onRecordButtonClick()"/>
+        <label value="&profilerUI.stopNotice2;"/>
+      </hbox>
+
+      <hbox id="loading-notice"
+            class="notice-container"
+            align="center"
+            pack="center"
+            flex="1">
+        <label value="&profilerUI.loadingNotice;"/>
+      </hbox>
+
+      <tabbox id="profile-content"
+              class="theme-sidebar devtools-sidebar-tabs"
+              flex="1">
+        <hbox>
+          <tabs/>
+          <button id="profile-newtab-button"
+                  tooltiptext="&profilerUI.newtab.tooltiptext;"/>
+        </hbox>
+        <tabpanels flex="1"/>
+      </tabbox>
+    </box>
+  </vbox>
+</window>
