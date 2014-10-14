@@ -17,6 +17,15 @@ addMessageListener("devtools:test:reload", function ({ data }) {
   content.location.reload(data.forceget);
 });
 
+// To eval in content, look at `evalInDebuggee` in the head.js of canvasdebugger
+// for an example.
+addMessageListener("devtools:test:eval", function ({ data }) {
+  sendAsyncMessage("devtools:test:eval:response", {
+    value: content.eval(data.script),
+    id: data.id
+  });
+});
+
 addEventListener("load", function() {
   sendAsyncMessage("devtools:test:load");
 }, true);
