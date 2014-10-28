@@ -20,6 +20,7 @@
   <script type="application/javascript" src="chrome://browser/content/devtools/d3.js"/>
   <script type="application/javascript" src="dagre-d3.js"/>
   <script type="application/javascript" src="webaudioeditor/includes.js"/>
+  <script type="application/javascript" src="webaudioeditor/options.js"/>
   <script type="application/javascript" src="webaudioeditor/models.js"/>
   <script type="application/javascript" src="webaudioeditor/controller.js"/>
   <script type="application/javascript" src="webaudioeditor/views/utils.js"/>
@@ -55,10 +56,24 @@
     <vbox id="content"
          flex="1"
          hidden="true">
+      <popupset id="web-audio-popupset">
+        <menupopup id="web-audio-prefs-contextmenu"
+                   position="before_end">
+          <menuitem id="option-show-dead-nodes"
+                    type="checkbox"
+                    label="&webAudioEditorUI.options.showDeadNodes;"
+                    accesskey="&webAudioEditorUI.options.showDeadNodes.accesskey;" />
+        </menupopup>
+      </popupset>
       <toolbar id="web-audio-toolbar" class="devtools-toolbar">
         <spacer flex="1"></spacer>
         <toolbarbutton id="inspector-pane-toggle" class="devtools-toolbarbutton"
                        tabindex="0"/>
+        <toolbarbutton id="web-audio-options"
+                       class="devtools-toolbarbutton devtools-option-toolbarbutton"
+                       tooltiptext="&webAudioEditorUI.optsButton.tooltip;"
+                       popup="web-audio-prefs-contextmenu"
+                       tabindex="1"/>
       </toolbar>
       <splitter class="devtools-horizontal-splitter"/>
       <box id="web-audio-content-pane"

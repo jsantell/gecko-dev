@@ -77,6 +77,7 @@ browser.jar:
     content/browser/devtools/webaudioeditor.xul                        (webaudioeditor/webaudioeditor.xul)
     content/browser/devtools/dagre-d3.js                               (webaudioeditor/lib/dagre-d3.js)
     content/browser/devtools/webaudioeditor/includes.js                (webaudioeditor/includes.js)
+    content/browser/devtools/webaudioeditor/options.js                 (webaudioeditor/options.js)
     content/browser/devtools/webaudioeditor/models.js                  (webaudioeditor/models.js)
     content/browser/devtools/webaudioeditor/controller.js              (webaudioeditor/controller.js)
     content/browser/devtools/webaudioeditor/views/utils.js             (webaudioeditor/views/utils.js)

@@ -38,3 +38,12 @@
 <!-- LOCALIZATION NOTE (webAudioEditorUI.propertiesEmpty): This is the title for the
   -  AudioNode inspector view properties tab empty message. -->
 <!ENTITY webAudioEditorUI.propertiesEmpty "Node does not have any properties.">
+
+<!-- LOCALIZATION NOTE (webAudioEditorUI.optsButton.tooltip): This is the tooltip for
+  -  the configuration options button that opens the options menu. -->
+<!ENTITY webAudioEditorUI.optsButton.tooltip "Web Audio Editor Options">
+
+<!-- LOCALIZATION NOTE (webAudioEditorUI.options.showDeadNodes): The option to toggle
+  -  whether or not garbage collected audio nodes are displayed in the graph. -->
+<!ENTITY webAudioEditorUI.options.showDeadNodes "Display GC'd AudioNodes in graph">
+<!ENTITY webAudioEditorUI.options.showDeadNodes.accesskey "d">

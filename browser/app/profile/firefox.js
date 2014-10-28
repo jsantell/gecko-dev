@@ -1438,6 +1438,7 @@ pref("devtools.canvasdebugger.enabled", false);
 
 // Enable the Web Audio Editor
 pref("devtools.webaudioeditor.enabled", false);
+pref("devtools.webaudioeditor.show-dead-nodes", false);
 
 // Default theme ("dark" or "light")
 pref("devtools.theme", "light");

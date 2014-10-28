@@ -9,11 +9,17 @@
 let gAudioNodes = new AudioNodesCollection();
 
 /**
+ * Global handler for the options menu and preference setting.
+ */
+let WebAudioOptions = new OptionsView();
+
+/**
  * Initializes the web audio editor views
  */
 function startupWebAudioEditor() {
   return all([
     WebAudioEditorController.initialize(),
+    WebAudioOptions.initialize(),
     ContextView.initialize(),
     InspectorView.initialize()
   ]);
@@ -25,6 +31,7 @@ function startupWebAudioEditor() {
 function shutdownWebAudioEditor() {
   return all([
     WebAudioEditorController.destroy(),
+    WebAudioOptions.destroy(),
     ContextView.destroy(),
     InspectorView.destroy(),
   ]);
