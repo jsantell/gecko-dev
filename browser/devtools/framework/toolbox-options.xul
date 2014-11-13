@@ -34,6 +34,12 @@
                     data-pref="devtools.theme"
                     orient="horizontal">
         </radiogroup>
+        <vbox class="options-groupbox">
+          <checkbox id="devtools-browser-theme"
+                    data-pref="browser.devedition.theme.enabled"
+                    label="&options.usedeveditiontheme.label;"
+                    tooltiptext="&options.usedeveditiontheme.tooltip;"/>
+        </vbox>
         <label>&options.commonPrefs.label;</label>
         <vbox id="commonprefs-options" class="options-groupbox">
           <checkbox label="&options.enablePersistentLogs.label;"

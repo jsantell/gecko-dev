@@ -9,6 +9,7 @@ const Services = require("Services");
 const promise = require("promise");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "CustomizeMode", "resource:///modules/CustomizeMode.jsm");
 
 exports.OptionsPanel = OptionsPanel;
 
@@ -104,6 +105,7 @@ OptionsPanel.prototype = {
       this.setupToolsList();
       this.setupToolbarButtonsList();
       this.setupThemeList();
+      this.setupBrowserThemes();
       this.populatePreferences();
       this.updateDefaultTheme();
 
@@ -142,6 +144,8 @@ OptionsPanel.prototype = {
     }
     else if (data.pref === "devtools.theme") {
       this.updateCurrentTheme();
+    } else if (data.pref === "browser.devedition.theme.enabled") {
+      this.updateBrowserTheme();
     }
   },
 
@@ -275,6 +279,17 @@ OptionsPanel.prototype = {
     }
 
     this.updateCurrentTheme();
+  },
+
+  setupBrowserThemes: function() {
+    let checkbox = this.panelDoc.getElementById("devtools-browser-theme");
+    let show = GetPref("browser.devedition.theme.showCustomizeButton");
+    checkbox.hidden = !show;
+  },
+
+  updateBrowserTheme: function() {
+    let enabled = GetPref("browser.devedition.theme.enabled");
+    CustomizeMode.prototype.toggleDevEditionTheme.call(this, enabled);
   },
 
   populatePreferences: function() {
