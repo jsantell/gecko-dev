@@ -20,11 +20,11 @@ let WaterfallView = {
     this._start = this._start.bind(this);
     this._onTimelineData = this._onTimelineData.bind(this);
     this._onMarkerSelected = this._onMarkerSelected.bind(this);
+    this._onRangeChange = this._onRangeChange.bind(this);
     this._onResize = this._onResize.bind(this);
 
     this.graph = new Waterfall($("#waterfall-graph"), $("#details-pane"));
     this.markerDetails = new MarkerDetails($("#waterfall-details"), $("#waterfall-view > splitter"));
-
     this.graph.on("selected", this._onMarkerSelected);
     this.graph.on("unselected", this._onMarkerSelected);
     this.markerDetails.on("resize", this._onResize);
@@ -32,6 +32,8 @@ let WaterfallView = {
     PerformanceController.on(EVENTS.RECORDING_STARTED, this._start);
     PerformanceController.on(EVENTS.RECORDING_STOPPED, this._stop);
     PerformanceController.on(EVENTS.TIMELINE_DATA, this._onTimelineData);
+    OverviewView.on(EVENTS.OVERVIEW_RANGE_SELECTED, this._onRangeChange);
+    OverviewView.on(EVENTS.OVERVIEW_RANGE_CLEARED, this._onRangeChange);
     yield this.graph.recalculateBounds();
   }),
 
@@ -42,21 +44,43 @@ let WaterfallView = {
     this.graph.off("selected", this._onMarkerSelected);
     this.graph.off("unselected", this._onMarkerSelected);
     this.markerDetails.off("resize", this._onResize);
+    this.markerDetails.destroy();
 
     PerformanceController.off(EVENTS.RECORDING_STARTED, this._start);
     PerformanceController.off(EVENTS.RECORDING_STOPPED, this._stop);
     PerformanceController.off(EVENTS.TIMELINE_DATA, this._onTimelineData);
+    OverviewView.off(EVENTS.OVERVIEW_RANGE_SELECTED, this._onRangeChange);
+    OverviewView.off(EVENTS.OVERVIEW_RANGE_CLEARED, this._onRangeChange);
   },
 
-  render: Task.async(function *() {
+  render: Task.async(function *(markers, epoch, startTime, endTime) {
+    markers = markers || this._markers;
+    epoch = epoch || this._startTime;
+    startTime = startTime || this._startTime;
+    endTime = endTime || this._endTime;
+    this.graph.resetSelection();
     yield this.graph.recalculateBounds();
-    this.graph.setData(this._markers, this._startTime, this._startTime, this._endTime);
+    this.graph.setData(markers, epoch, startTime, endTime);
     this.emit(EVENTS.WATERFALL_RENDERED);
   }),
 
   /**
    * Event handlers
    */
+
+  /**
+   * Fired when a range is selected or cleared in the OverviewView.
+   */
+  _onRangeChange: function (_, params) {
+    // When a range is cleared, we'll have no beginAt/endAt data,
+    // so the rebuild will just render all the data again.
+    let { beginAt, endAt } = params || {};
+
+    // The `startAt` and `endAt` values are delta from `this._startTime`,
+    let start = this._startTime + (beginAt || 0);
+    let end = this._startTime + (endAt || this._endTime);
+    this.render(this._markers, this._startTime, start, end);
+  },
 
   /**
    * Called when recording starts.
