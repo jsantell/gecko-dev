@@ -19,6 +19,8 @@ const { getColor } = require("devtools/shared/theme");
 
 loader.lazyRequireGetter(this, "L10N",
   "devtools/timeline/global", true);
+loader.lazyRequireGetter(this, "TIMELINE_BLUEPRINT",
+  "devtools/timeline/global", true);
 
 const OVERVIEW_HEADER_HEIGHT = 14; // px
 const OVERVIEW_ROW_HEIGHT = 11; // row height
@@ -43,7 +45,7 @@ const OVERVIEW_GROUP_VERTICAL_PADDING = 5; // px
  *
  * @param nsIDOMNode parent
  *        The parent node holding the overview.
- * @param Object blueprint
+ * @param Object blueprint [optional]
  *        List of names and colors defining markers.
  */
 function MarkersOverview(parent, blueprint, ...args) {
@@ -52,7 +54,7 @@ function MarkersOverview(parent, blueprint, ...args) {
   this.setTheme();
 
   // Set the list of names, properties and colors used to paint this overview.
-  this.setBlueprint(blueprint);
+  this.setBlueprint(blueprint || TIMELINE_BLUEPRINT);
 
   this.once("ready", () => {
     // Populate this overview with some dummy initial data.

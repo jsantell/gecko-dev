@@ -19,6 +19,8 @@ loader.lazyImporter(this, "clearNamedTimeout",
   "resource:///modules/devtools/ViewHelpers.jsm");
 loader.lazyRequireGetter(this, "EventEmitter",
   "devtools/toolkit/event-emitter");
+loader.lazyRequireGetter(this, "TIMELINE_BLUEPRINT",
+  "devtools/timeline/global", true);
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 
@@ -48,7 +50,7 @@ const WATERFALL_ROWCOUNT_ONPAGEUPDOWN = 10;
  *        The parent node holding the waterfall.
  * @param nsIDOMNode container
  *        The container node that key events should be bound to.
- * @param Object blueprint
+ * @param Object blueprint [optional]
  *        List of names and colors defining markers.
  */
 function Waterfall(parent, container, blueprint) {
@@ -75,7 +77,7 @@ function Waterfall(parent, container, blueprint) {
 
   // Lazy require is a bit slow, and these are hot objects.
   this._l10n = L10N;
-  this._blueprint = blueprint
+  this._blueprint = blueprint || TIMELINE_BLUEPRINT;
   this._setNamedTimeout = setNamedTimeout;
   this._clearNamedTimeout = clearNamedTimeout;
 
