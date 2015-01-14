@@ -13,6 +13,7 @@ let FlameGraphView = {
    */
   initialize: Task.async(function* () {
     this._onRecordingStopped = this._onRecordingStopped.bind(this);
+    this._onRecordingSelected = this._onRecordingSelected.bind(this);
     this._onRangeChange = this._onRangeChange.bind(this);
 
     this.graph = new FlameGraph($("#flamegraph-view"));
@@ -20,6 +21,7 @@ let FlameGraphView = {
     yield this.graph.ready();
 
     PerformanceController.on(EVENTS.RECORDING_STOPPED, this._onRecordingStopped);
+    PerformanceController.on(EVENTS.RECORDING_SELECTED, this._onRecordingSelected);
     OverviewView.on(EVENTS.OVERVIEW_RANGE_SELECTED, this._onRangeChange);
     OverviewView.on(EVENTS.OVERVIEW_RANGE_CLEARED, this._onRangeChange);
   }),
@@ -29,6 +31,7 @@ let FlameGraphView = {
    */
   destroy: function () {
     PerformanceController.off(EVENTS.RECORDING_STOPPED, this._onRecordingStopped);
+    PerformanceController.off(EVENTS.RECORDING_SELECTED, this._onRecordingSelected);
     OverviewView.off(EVENTS.OVERVIEW_RANGE_SELECTED, this._onRangeChange);
     OverviewView.off(EVENTS.OVERVIEW_RANGE_CLEARED, this._onRangeChange);
   },
@@ -50,9 +53,23 @@ let FlameGraphView = {
   /**
    * Called when recording is stopped.
    */
-  _onRecordingStopped: function () {
-    let profilerData = PerformanceController.getProfilerData();
-    this.render(profilerData);
+  _onRecordingStopped: function (_, recording) {
+    // If not recording, then this recording is done and we can render all of it
+    if (!recording.isRecording()) {
+      let profilerData = recording.getProfilerData();
+      this.render(profilerData);
+    }
+  },
+
+  /**
+   * Called when a recording has been selected.
+   */
+  _onRecordingSelected: function (_, recording) {
+    // If not recording, then this recording is done and we can render all of it
+    if (!recording.isRecording()) {
+      let profilerData = recording.getProfilerData();
+      this.render(profilerData);
+    }
   },
 
   /**

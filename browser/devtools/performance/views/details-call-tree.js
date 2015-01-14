@@ -49,9 +49,12 @@ let CallTreeView = {
   /**
    * Called when recording is stopped.
    */
-  _onRecordingStopped: function () {
-    let profilerData = PerformanceController.getProfilerData();
-    this.render(profilerData);
+  _onRecordingStopped: function (_, recording) {
+    // If not recording, then this recording is done and we can render all of it
+    if (!recording.isRecording()) {
+      let profilerData = recording.getProfilerData();
+      this.render(profilerData);
+    }
   },
 
   /**
@@ -59,8 +62,6 @@ let CallTreeView = {
    */
   _onRecordingSelected: function (_, recording) {
     // If not recording, then this recording is done and we can render all of it
-    // Otherwise, TODO in bug 1120699 will hide the details view altogether if
-    // this is still recording.
     if (!recording.isRecording()) {
       let profilerData = recording.getProfilerData();
       this.render(profilerData);

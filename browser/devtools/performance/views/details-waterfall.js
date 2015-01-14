@@ -66,8 +66,10 @@ let WaterfallView = {
   /**
    * Called when recording stops.
    */
-  _onRecordingStopped: function () {
-    this.render();
+  _onRecordingStopped: function (_, recording) {
+    if (!recording.isRecording()) {
+      this.render();
+    }
   },
 
   /**
