@@ -84,6 +84,14 @@ g.edgePath.param-connection {
   fill: var(--theme-toolbar-background);
 }
 
+.nodes g.bypassed rect {
+  opacity: 0.5;
+}
+
+.nodes g.bypassed text {
+  opacity: 0.8;
+}
+
 .nodes g.selected rect {
   fill: var(--theme-selection-background);
 }
@@ -176,6 +184,26 @@ text {
   .web-audio-inspector .error {
     background-image: url(alerticon-warning@2x.png);
   }
+}
+
+/**
+ * Inspector toolbar
+ */
+
+#audio-node-toolbar .bypass {
+  list-style-image: url(power.svg);
+}
+
+#audio-node-toolbar toolbarbutton[disabled] {
+  opacity: 0.5;
+  background-color: none;
+}
+
+.theme-dark #audio-node-toolbar toolbarbutton[checked] {
+  background-color: #1d4f73; /* Select Highlight Blue */
+}
+.theme-light #audio-node-toolbar toolbarbutton[checked] {
+  background-color: #4c9ed9; /* Select Highlight Blue */
 }
 
 /**
