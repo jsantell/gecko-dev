@@ -31,6 +31,7 @@
 #ifdef MOZ_WEBRTC
 #include "AudioOutputObserver.h"
 #endif
+#include "AudioContext.h"
 
 #include "webaudio/blink/HRTFDatabaseLoader.h"
 
@@ -1402,6 +1403,11 @@ MediaStreamGraphImpl::OneIteration(GraphTime aFrom, GraphTime aTo,
       }
 
       lock.Notify();
+      if (mAudioContextForMemoryReporting) {
+        nsCOMPtr<nsIRunnable> event =
+          NS_NewRunnableMethod(this, &MediaStreamGraphImpl::MemoryReportComplete);
+        NS_DispatchToMainThread(event);
+      }
     }
   }
 
@@ -2745,6 +2751,7 @@ MediaStreamGraphImpl::MediaStreamGraphImpl(bool aRealtime,
   , mSelfRef(this)
   , mAudioStreamSizes()
   , mNeedsMemoryReport(false)
+  , mAudioContextForMemoryReporting(nullptr)
 #ifdef DEBUG
   , mCanRunMessagesSynchronously(false)
 #endif
@@ -2876,6 +2883,50 @@ struct ArrayClearer
   nsTArray<AudioNodeSizes>& mArray;
 };
 
+
+void MediaStreamGraph::RequestMemoryUsage(AudioContext* aContext)
+{
+  MediaStreamGraphImpl* graph = static_cast<MediaStreamGraphImpl*>(this);
+  graph->RequestMemoryUsage(aContext);
+}
+
+void
+MediaStreamGraphImpl::RequestMemoryUsage(AudioContext* aContext)
+{
+  if (mAudioContextForMemoryReporting) {
+    return;
+  }
+
+  if (mLifecycleState >= LIFECYCLE_WAITING_FOR_THREAD_SHUTDOWN) {
+    // Shutting down, nothing to report.
+    return;
+  }
+
+  MonitorAutoLock memoryReportLock(mMemoryReportMonitor);
+  mAudioContextForMemoryReporting = aContext;
+  mNeedsMemoryReport = true;
+  {
+    // Wake up the MSG thread if it's real time (Offline graphs can't be
+    // sleeping).
+    MonitorAutoLock monitorLock(mMonitor);
+    if (!CurrentDriver()->AsOfflineClockDriver()) {
+      CurrentDriver()->WakeUp();
+    }
+  }
+}
+
+void
+MediaStreamGraphImpl::MemoryReportComplete()
+{
+  // Clears out the report array after we're done with it.
+  ArrayClearer reportCleanup(mAudioStreamSizes);
+
+  MOZ_ASSERT(mAudioContextForMemoryReporting);
+
+  mAudioContextForMemoryReporting->MemoryReportComplete(mAudioStreamSizes);
+  mAudioContextForMemoryReporting = nullptr;
+}
+
 NS_IMETHODIMP
 MediaStreamGraphImpl::CollectReports(nsIHandleReportCallback* aHandleReport,
                                      nsISupports* aData, bool aAnonymize)
@@ -2939,7 +2990,6 @@ MediaStreamGraphImpl::CollectReports(nsIHandleReportCallback* aHandleReport,
                                nodeType);
     REPORT(streamPath, usage.mStream,
            "Memory used by AudioNode stream objects (Web Audio).");
-
   }
 
   size_t hrtfLoaders = WebCore::HRTFDatabaseLoader::sizeOfLoaders(MallocSizeOf);

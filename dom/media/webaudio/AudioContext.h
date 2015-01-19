@@ -20,6 +20,7 @@
 #include "nsTHashtable.h"
 #include "js/TypeDecls.h"
 #include "nsIMemoryReporter.h"
+#include "MediaStreamGraph.h"
 
 // X11 has a #define for CurrentTime. Unbelievable :-(.
 // See dom/media/DOMMediaStream.h for more fun!
@@ -247,6 +248,9 @@ public:
   IMPL_EVENT_HANDLER(mozinterruptbegin)
   IMPL_EVENT_HANDLER(mozinterruptend)
 
+  already_AddRefed<Promise> GetMemoryReport();
+  void MemoryReportComplete(nsTArray<AudioNodeSizes>& aSizes);
+
 private:
   /**
    * Returns the amount of extra time added to the current time of the
@@ -279,6 +283,7 @@ private:
   // Hashsets containing all the PannerNodes, to compute the doppler shift.
   // These are weak pointers.
   nsTHashtable<nsPtrHashKey<PannerNode> > mPannerNodes;
+  nsRefPtr<Promise> mMemoryReportingPromise;
   // Number of channels passed in the OfflineAudioContext ctor.
   uint32_t mNumberOfChannels;
   // Number of nodes that currently exist for this AudioContext
