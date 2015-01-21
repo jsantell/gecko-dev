@@ -95,4 +95,9 @@ partial interface AudioContext {
 
   // This method is for test only.
   [ChromeOnly] AudioChannel testAudioChannelInAudioNodeStream();
+
+  // This method returns a Promise that resolves with an object containing node
+  // id as the key, and memory usage in bytes as values.
+  [ChromeOnly]
+  Promise<object> getMemoryReport();
 };

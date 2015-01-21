@@ -38,6 +38,7 @@
 #include "nsNetUtil.h"
 #include "AudioStream.h"
 #include "mozilla/dom/Promise.h"
+#include "nsPrintfCString.h"
 
 namespace mozilla {
 namespace dom {
@@ -721,6 +722,50 @@ double
 AudioContext::ExtraCurrentTime() const
 {
   return mDestination->ExtraCurrentTime();
+}
+
+already_AddRefed<Promise>
+AudioContext::GetMemoryReport()
+{
+  ErrorResult rv;
+  nsCOMPtr<nsIGlobalObject> parentObject = do_QueryInterface(GetParentObject());
+  nsRefPtr<Promise> promise;
+  promise = Promise::Create(parentObject, rv);
+  if (rv.Failed()) {
+    return nullptr;
+  }
+  Destination()->Stream()->Graph()->RequestMemoryUsage(this);
+
+  mMemoryReportingPromise = promise;
+  return promise.forget();
+}
+
+void AudioContext::MemoryReportComplete(nsTArray<AudioNodeSizes>& aSizes)
+{
+  AutoJSAPI jsapi;
+
+  jsapi.Init();
+  JSContext* cx = jsapi.cx();
+  JSAutoCompartment ac(cx, GetGlobalJSObject());
+  JS::Rooted<JSObject*> obj(cx);
+  obj = JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr());
+
+  for (size_t i = 0; i < aSizes.Length(); i++) {
+    const AudioNodeSizes& usage = aSizes[i];
+    uint32_t totalMemoryUsage = usage.mStream + usage.mEngine + usage.mDomNode;
+    nsPrintfCString idStr("%u", usage.mNodeId);
+    JS::Rooted<JS::Value> memoryUsage(cx, JS_NumberValue(totalMemoryUsage));
+
+    bool rv = JS_SetProperty(cx, obj, idStr.get(), memoryUsage);
+    if (!rv) {
+      NS_WARNING("Could not set property on memory reporting object");
+    }
+  }
+
+  JS::Rooted<JS::Value> val(cx);
+  val.setObject(*obj);
+  mMemoryReportingPromise->MaybeResolve(val);
+  mMemoryReportingPromise = nullptr;
 }
 
 }

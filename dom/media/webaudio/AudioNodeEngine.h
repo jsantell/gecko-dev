@@ -389,6 +389,7 @@ public:
     if (HasNode()) {
       aUsage.mDomNode = mNode->SizeOfIncludingThis(aMallocSizeOf);
       aUsage.mNodeType = mNode->NodeType();
+      aUsage.mNodeId = mNode->Id();
     }
   }
 
