@@ -20,6 +20,10 @@
 
 namespace mozilla {
 
+namespace dom {
+  class AudioContext;
+}
+
 template <typename T>
 class LinkedList;
 #ifdef MOZ_WEBRTC
@@ -462,6 +466,9 @@ public:
     }
   }
 
+  void RequestMemoryUsage(dom::AudioContext* aPromise);
+  void MemoryReportComplete();
+
   // Data members
   //
   /**
@@ -676,6 +683,7 @@ private:
    * Indicates that the MSG thread should gather data for a memory report.
    */
   bool mNeedsMemoryReport;
+  nsRefPtr<dom::AudioContext> mAudioContextForMemoryReporting;
 
 #ifdef DEBUG
   /**

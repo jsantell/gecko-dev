@@ -33,6 +33,10 @@ class nsAutoRefTraits<SpeexResamplerState> : public nsPointerRefTraits<SpeexResa
 
 namespace mozilla {
 
+  namespace dom {
+    class AudioContext;
+  }
+
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gMediaStreamGraphLog;
 #endif
@@ -229,6 +233,7 @@ struct AudioNodeSizes
   size_t mDomNode;
   size_t mStream;
   size_t mEngine;
+  uint32_t mNodeId;
   nsCString mNodeType;
 };
 
@@ -1227,6 +1232,8 @@ public:
    * Returns graph sample rate in Hz.
    */
   TrackRate GraphRate() const { return mSampleRate; }
+
+  void RequestMemoryUsage(dom::AudioContext* aContext);
 
 protected:
   explicit MediaStreamGraph(TrackRate aSampleRate)
