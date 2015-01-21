@@ -7,16 +7,17 @@ const {Cc, Ci, Cu, Cr} = require("chrome");
 
 const Services = require("Services");
 
-const { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
-const events = require("sdk/event/core");
+const { Task } = require("resource://gre/modules/Task.jsm");
+const { Promise: promise } = require("resource://gre/modules/Promise.jsm");
+const { on, once, off, emit } = require("sdk/event/core");
 const { on: systemOn, off: systemOff } = require("sdk/system/events");
-const protocol = require("devtools/server/protocol");
 const { CallWatcherActor, CallWatcherFront } = require("devtools/server/actors/call-watcher");
 const { ThreadActor } = require("devtools/server/actors/script");
 const AutomationTimeline = require("./utils/automation-timeline");
+const {
+  types, method, Arg, Option, RetVal, Actor, ActorClass, Front, FrontClass
+} = require("devtools/server/protocol");
 
-const { on, once, off, emit } = events;
-const { types, method, Arg, Option, RetVal } = protocol;
 
 const AUTOMATION_GRANULARITY = 2000;
 const AUTOMATION_GRANULARITY_MAX = 6000;
@@ -154,7 +155,7 @@ const NODE_PROPERTIES = {
  * Audio Context graph.
  */
 types.addActorType("audionode");
-let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
+let AudioNodeActor = exports.AudioNodeActor = ActorClass({
   typeName: "audionode",
 
   /**
@@ -166,7 +167,7 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
    *        The AudioNode that was created.
    */
   initialize: function (conn, node) {
-    protocol.Actor.prototype.initialize.call(this, conn);
+    Actor.prototype.initialize.call(this, conn);
 
     // Store ChromeOnly property `id` to identify AudioNode,
     // rather than storing a strong reference, and store a weak
@@ -561,9 +562,9 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
 /**
  * The corresponding Front object for the AudioNodeActor.
  */
-let AudioNodeFront = protocol.FrontClass(AudioNodeActor, {
+let AudioNodeFront = FrontClass(AudioNodeActor, {
   initialize: function (client, form) {
-    protocol.Front.prototype.initialize.call(this, client, form);
+    Front.prototype.initialize.call(this, client, form);
     // if we were manually passed a form, this was created manually and
     // needs to own itself for now.
     if (form) {
@@ -577,10 +578,10 @@ let AudioNodeFront = protocol.FrontClass(AudioNodeActor, {
  * high-level methods. After instantiating this actor, you'll need to set it
  * up by calling setup().
  */
-let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
+let WebAudioActor = exports.WebAudioActor = ActorClass({
   typeName: "webaudio",
   initialize: function(conn, tabActor) {
-    protocol.Actor.prototype.initialize.call(this, conn);
+    Actor.prototype.initialize.call(this, conn);
     this.tabActor = tabActor;
 
     this._onContentFunctionCall = this._onContentFunctionCall.bind(this);
@@ -596,7 +597,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
   },
 
   destroy: function(conn) {
-    protocol.Actor.prototype.destroy.call(this, conn);
+    Actor.prototype.destroy.call(this, conn);
     this.finalize();
   },
 
@@ -640,6 +641,29 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
   }, {
     request: { reload: Option(0, "boolean") },
     oneway: true
+  }),
+
+  /**
+   * Returns a hash of AudioNodeActor IDs with their memory consumption in bytes.
+   */
+  getMemory: method(Task.async(function *() {
+    let mem = yield this.context.getMemoryReport();
+
+    // Reduce memory down to a hash of only nodes that
+    // are currently on this document and context, and
+    // use actorIDs as the key instead of nativeIDs (as the front
+    // end does not currently have access to nativeIDs)
+    return Object.keys(mem).reduce((ret, nativeID) => {
+      let actor = this._getActorByNativeID(nativeID);
+      // If no actor found, probably a remenant from previous page that has
+      // not yet been collected
+      if (actor) {
+        ret[actor.actorID] = mem[nativeID];
+      }
+      return ret;
+    }, {});
+  }), {
+    response: { memory: RetVal("nullable:json") }
   }),
 
   /**
@@ -689,6 +713,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     // we're not hooking into the constructor itself, just its
     // instance's methods.
     if (!this._firstNodeCreated) {
+      this.context = caller;
       // Fire the start-up event if this is the first node created
       // and trigger a `create-node` event for the context destination
       this._onStartContext();
@@ -732,6 +757,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
 
     off(this.tabActor, "window-destroyed", this._onGlobalDestroyed);
     off(this.tabActor, "window-ready", this._onGlobalCreated);
+    this.context = null;
     this.tabActor = null;
     this._nativeToActorID = null;
     this._callWatcher.eraseRecording();
@@ -948,6 +974,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     if (this._nativeToActorID) {
       this._nativeToActorID.clear();
     }
+    this.context = null;
     systemOff("webaudio-node-demise", this._onDestroyNode);
   }
 });
@@ -955,9 +982,9 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
 /**
  * The corresponding Front object for the WebAudioActor.
  */
-let WebAudioFront = exports.WebAudioFront = protocol.FrontClass(WebAudioActor, {
+let WebAudioFront = exports.WebAudioFront = FrontClass(WebAudioActor, {
   initialize: function(client, { webaudioActor }) {
-    protocol.Front.prototype.initialize.call(this, client, { actor: webaudioActor });
+    Front.prototype.initialize.call(this, client, { actor: webaudioActor });
     this.manage(this);
   }
 });
