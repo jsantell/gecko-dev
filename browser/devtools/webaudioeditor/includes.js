@@ -15,6 +15,7 @@ const { require } = devtools;
 
 let { console } = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
 let { EventTarget } = require("sdk/event/target");
+let { setTimeout } = require("sdk/timers");
 
 const { Task } = Cu.import("resource://gre/modules/Task.jsm", {});
 const { Class } = require("sdk/core/heritage");
@@ -35,6 +36,8 @@ const { defer, all } = Cu.import("resource://gre/modules/Promise.jsm", {}).Promi
 
 /* Events fired on `window` to indicate state or actions*/
 const EVENTS = {
+  MEMORY_DATA: "WebAudioEditor:MemoryData",
+
   // Fired when the first AudioNode has been created, signifying
   // that the AudioContext is being used and should be tracked via the editor.
   START_CONTEXT: "WebAudioEditor:StartContext",

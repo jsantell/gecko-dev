@@ -129,9 +129,13 @@ const AudioNodeModel = Class({
    * @param dagreD3.Digraph
    */
   addToGraph: function (graph) {
+    let memory = MEMORY_DATA ? MEMORY_DATA[this.id] : MEMORY_DATA;
+    let type = this.type.replace(/Node$/, "");
+    memory = memory ? (memory/1000).toFixed(2) + "KB" : "";
+    let label = memory ? `<span class='name'>${type}</span><span style='color:red;margin-left:10px' class='memory'>${memory}</span>` : type;
     graph.addNode(this.id, {
-      type: this.type,
-      label: this.type.replace(/Node$/, ""),
+      type: type,
+      label: label,
       id: this.id,
       bypassed: this._bypassed
     });

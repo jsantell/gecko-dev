@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+const MEMORY_POLL_TIMER = 1000;
+let MEMORY_DATA = null;
+
 /**
  * A collection of `AudioNodeModel`s used throughout the editor
  * to keep track of audio nodes within the audio context.
@@ -45,6 +48,7 @@ let WebAudioEditorController = {
     telemetry.toolOpened("webaudioeditor");
     this._onTabNavigated = this._onTabNavigated.bind(this);
     this._onThemeChange = this._onThemeChange.bind(this);
+    this._onStartContext = this._onStartContext.bind(this);
 
     gTarget.on("will-navigate", this._onTabNavigated);
     gTarget.on("navigate", this._onTabNavigated);
@@ -179,6 +183,7 @@ let WebAudioEditorController = {
     $("#reload-notice").hidden = true;
     $("#waiting-notice").hidden = true;
     $("#content").hidden = false;
+    this.startMemoryPolling();
     window.emit(EVENTS.START_CONTEXT);
   },
 
@@ -227,5 +232,27 @@ let WebAudioEditorController = {
    */
   _onChangeParam: function({ actor, param, value }) {
     window.emit(EVENTS.CHANGE_PARAM, gAudioNodes.get(actor.actorID), param, value);
+  },
+
+  startMemoryPolling: function () {
+    this._memoryPollingOn = true;
+    this.pollMemory();
+  },
+
+  stopMemoryPolling: function () {
+    this._memoryPollingOn = false;
+  },
+
+  pollMemory: function () {
+    var controller = this;
+    setTimeout(function () {
+      if (controller._memoryPollingOn) {
+        gFront.getMemory().then(function (memory) {
+          MEMORY_DATA = memory;
+          window.emit(EVENTS.MEMORY_DATA, memory);
+          controller.pollMemory();
+        });
+      }
+    }, MEMORY_POLL_TIMER);
   }
 };

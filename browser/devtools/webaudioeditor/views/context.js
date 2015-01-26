@@ -40,10 +40,12 @@ let ContextView = {
     this._onThemeChange = this._onThemeChange.bind(this);
     this._onStartContext = this._onStartContext.bind(this);
     this._onEvent = this._onEvent.bind(this);
+    this._onMemoryData = this._onMemoryData.bind(this);
 
     this.draw = debounce(this.draw.bind(this), GRAPH_DEBOUNCE_TIMER);
     $("#graph-target").addEventListener("click", this._onGraphClick, false);
 
+    window.on(EVENTS.MEMORY_DATA, this._onMemoryData);
     window.on(EVENTS.THEME_CHANGE, this._onThemeChange);
     window.on(EVENTS.START_CONTEXT, this._onStartContext);
     gAudioNodes.on("*", this._onEvent);
@@ -302,5 +304,9 @@ let ContextView = {
 
     this.focusNode(id);
     window.emit(EVENTS.UI_SELECT_NODE, id);
+  },
+
+  _onMemoryData: function (_, data) {
+    this.draw();
   }
 };
