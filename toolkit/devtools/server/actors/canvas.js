@@ -290,6 +290,7 @@ let CanvasActor = exports.CanvasActor = protocol.ActorClass({
    * Records a snapshot of all the calls made during the next animation frame.
    * The animation should be implemented via the de-facto requestAnimationFrame
    * utility, not inside a `setInterval` or recursive `setTimeout`.
+   * Resolves to the snapshot actor, or `null` if the recording was cancelled.
    *
    * XXX: Currently only supporting requestAnimationFrame. When this isn't used,
    * it'd be a good idea to display a huge red flashing banner telling people to
@@ -306,7 +307,23 @@ let CanvasActor = exports.CanvasActor = protocol.ActorClass({
     let deferred = this._currentAnimationFrameSnapshot = promise.defer();
     return deferred.promise;
   }, {
-    response: { snapshot: RetVal("frame-snapshot") }
+    response: { snapshot: RetVal("nullable:frame-snapshot") }
+  }),
+
+  /**
+   * Cease attempts to record an animation frame.
+   */
+  stopRecordingAnimationFrame: method(function() {
+   if (!this._callWatcher.isRecording()) {
+      return;
+    }
+    this._animationStarted = false;
+    this._callWatcher.pauseRecording();
+    this._callWatcher.eraseRecording();
+    this._currentAnimationFrameSnapshot.resolve(null);
+    this._currentAnimationFrameSnapshot = null;
+  }, {
+    oneway: true
   }),
 
   /**
