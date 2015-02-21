@@ -62,7 +62,8 @@ function startupShaderEditor() {
   return promise.all([
     EventsHandler.initialize(),
     ShadersListView.initialize(),
-    ShadersEditorsView.initialize()
+    ShadersEditorsView.initialize(),
+    RenderView.initialize()
   ]);
 }
 
@@ -73,7 +74,8 @@ function shutdownShaderEditor() {
   return promise.all([
     EventsHandler.destroy(),
     ShadersListView.destroy(),
-    ShadersEditorsView.destroy()
+    ShadersEditorsView.destroy(),
+    RenderView.destroy()
   ]);
 }
 
@@ -300,12 +302,19 @@ let ShadersListView = Heritage.extend(WidgetMethods, {
       return ShadersEditorsView.setText({
         vs: vertexShaderText,
         fs: fragmentShaderText
-      });
+      }).then(() => ({ fs: fragmentShaderText, vs: vertexShaderText }));
     }
+    let renderShader = Task.async(function* ({ vs, fs }) {
+      console.log("loading via shadereditor.js");
+      yield RenderView.load({ vs, fs });
+      console.log("playing from shadereditor.js");
+      RenderView.play();
+    });
 
     getShaders()
       .then(getSources)
       .then(showSources)
+      .then(renderShader)
       .then(null, Cu.reportError);
   },
 

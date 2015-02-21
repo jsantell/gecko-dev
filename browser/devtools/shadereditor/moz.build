@@ -4,6 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 EXTRA_JS_MODULES.devtools.shadereditor += [
+    'modules/gl-matrix.js',
+    'modules/gl-utils.js',
     'panel.js'
 ]
 

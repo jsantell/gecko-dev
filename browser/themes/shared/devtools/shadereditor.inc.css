@@ -117,3 +117,7 @@
     border-bottom: 1px solid;
   }
 }
+
+#render-pane {
+  width: 200px;
+}

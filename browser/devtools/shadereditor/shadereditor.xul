@@ -18,6 +18,7 @@
           src="chrome://browser/content/devtools/theme-switching.js"/>
 
   <script type="application/javascript" src="shadereditor.js"/>
+  <script type="application/javascript" src="shadereditor/render.js"/>
 
   <vbox class="theme-body" flex="1">
     <hbox id="reload-notice"
@@ -66,6 +67,8 @@
                  value="&shaderEditorUI.fragmentShader;"/>
         </vbox>
       </box>
+      <splitter class="devtools-side-splitter"/>
+      <vbox id="render-pane" />
     </box>
   </vbox>
 
