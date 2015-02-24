@@ -385,9 +385,20 @@
                         class="tabpanel-content">
                 <vbox flex="1">
                   <label id="response-content-info-header"/>
-                  <vbox id="response-content-json-box" flex="1" hidden="true">
-                    <vbox id="response-content-json" flex="1"/>
-                  </vbox>
+                  <tabbox id="response-content-json-box" flex="1" hidden="true">
+                    <tabs>
+                      <tab label="Preview" />
+                      <tab label="Raw" />
+                    </tabs>
+                    <tabpanels flex="1">
+                      <tabpanel flex="1" class="tabpanel-content">
+                        <vbox flex="1" id="response-content-json" />
+                      </tabpanel>
+                      <tabpanel flex="1" class="tabpanel-content">
+                        <vbox flex="1" id="response-content-json-raw" />
+                      </tabpanel>
+                    </tabpanels>
+                  </tabbox>
                   <vbox id="response-content-textarea-box" flex="1" hidden="true">
                     <vbox id="response-content-textarea" flex="1"/>
                   </vbox>

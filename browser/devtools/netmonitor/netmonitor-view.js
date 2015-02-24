@@ -2570,7 +2570,12 @@ NetworkDetailsView.prototype = {
           : L10N.getStr("jsonScopeName");
 
         let jsonVar = { label: jsonScopeName, rawObject: jsonObject };
+
         yield this._json.controller.setSingleVariable(jsonVar).expanded;
+
+        // Set raw view
+        let editor = yield NetMonitorView.editor("#response-content-json-raw");
+        editor.setText(responseBody);
       }
       // Malformed JSON.
       else {
