@@ -71,6 +71,9 @@ const EVENTS = {
   // When a tab is selected in the NetworkDetailsView and subsequently rendered.
   TAB_UPDATED: "NetMonitor:TabUpdated",
 
+  // Fired when Sidebar is toggled to display or hide.
+  SIDEBAR_TOGGLED: "NetMonitor:SidebarToggled",
+
   // Fired when Sidebar has finished being populated.
   SIDEBAR_POPULATED: "NetMonitor:SidebarPopulated",
 
@@ -79,6 +82,9 @@ const EVENTS = {
 
   // Fired when CustomRequestView has finished being populated.
   CUSTOMREQUESTVIEW_POPULATED: "NetMonitor:CustomRequestViewPopulated",
+
+  // Fired when a custom HTTP request is sent.
+  CUSTOM_REQUEST_SENT: "NetMonitor:CustomRequestSent",
 
   // Fired when charts have been displayed in the PerformanceStatisticsView.
   PLACEHOLDER_CHARTS_DISPLAYED: "NetMonitor:PlaceholderChartsDisplayed",
@@ -117,18 +123,15 @@ Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
 const promise = Cu.import("resource://gre/modules/Promise.jsm", {}).Promise;
 const EventEmitter = require("devtools/toolkit/event-emitter");
+const utils = require("devtools/netmonitor/utils");
+const types = require("devtools/netmonitor/types");
 const Editor = require("devtools/sourceeditor/editor");
-const {Tooltip} = require("devtools/shared/widgets/Tooltip");
 const {ToolSidebar} = require("devtools/framework/sidebar");
+const RequestCollection = new require("devtools/netmonitor/request-collection").RequestCollection();
+let { console } = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
 
 XPCOMUtils.defineLazyModuleGetter(this, "Chart",
   "resource:///modules/devtools/Chart.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "Curl",
-  "resource:///modules/devtools/Curl.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "CurlUtils",
-  "resource:///modules/devtools/Curl.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
   "resource://gre/modules/Task.jsm");
@@ -168,9 +171,13 @@ let NetMonitorController = {
       return this._startup;
     }
 
-    NetMonitorView.initialize();
 
     // Startup is synchronous, for now.
+    NetMonitorView.initialize();
+    NetMonitorView.RequestsMenu.initialize();
+    NetMonitorView.Sidebar.initialize();
+    NetMonitorView.NetworkDetails.initialize();
+
     return this._startup = promise.resolve();
   },
 
@@ -185,7 +192,11 @@ let NetMonitorController = {
       return this._shutdown;
     }
 
+    RequestCollection.disable();
     NetMonitorView.destroy();
+    NetMonitorView.RequestsMenu.destroy();
+    NetMonitorView.Sidebar.destroy();
+    NetMonitorView.NetworkDetails.destroy();
     this.TargetEventsHandler.disconnect();
     this.NetworkEventsHandler.disconnect();
     this.disconnect();
@@ -241,6 +252,13 @@ let NetMonitorController = {
    */
   isConnected: function() {
     return !!this.client;
+  },
+
+  /**
+   * Resets the requests collection. Views listen to this event and will update appropriately.
+   */
+  reset: function () {
+    RequestCollection.reset();
   },
 
   /**
@@ -478,8 +496,7 @@ TargetEventsHandler.prototype = {
       case "will-navigate": {
         // Reset UI.
         if (!Services.prefs.getBoolPref("devtools.webconsole.persistlog")) {
-          NetMonitorView.RequestsMenu.reset();
-          NetMonitorView.Sidebar.toggle(false);
+          NetMonitorController.reset();
         }
         // Switch to the default network traffic inspector view.
         if (NetMonitorController.getCurrentActivity() == ACTIVITY_TYPE.NONE) {
@@ -559,7 +576,12 @@ NetworkEventsHandler.prototype = {
     }
 
     let { actor, startedDateTime, method, url, isXHR } = aPacket.eventActor;
-    NetMonitorView.RequestsMenu.addRequest(actor, startedDateTime, method, url, isXHR);
+    console.log("NETWORKVENT", actor);
+
+    let unixTime = Date.parse(startedDateTime);
+    RequestCollection.add({
+      gNetwork, isXHR, url, method, id: actor, startedMillis: unixTime
+    });
     window.emit(EVENTS.NETWORK_EVENT, actor);
   },
 
@@ -573,7 +595,7 @@ NetworkEventsHandler.prototype = {
    */
   _onNetworkEventUpdate: function(aType, aPacket) {
     let actor = aPacket.from;
-    if (!NetMonitorView.RequestsMenu.getItemByValue(actor)) {
+    if (!RequestCollection.get(actor)) {
       // Skip events from unknown actors.
       return;
     }
@@ -592,7 +614,7 @@ NetworkEventsHandler.prototype = {
         window.emit(EVENTS.UPDATING_REQUEST_POST_DATA, actor);
         break;
       case "securityInfo":
-        NetMonitorView.RequestsMenu.updateRequest(aPacket.from, {
+        RequestCollection.update(aPacket.from, {
           securityState: aPacket.state,
         });
         this.webConsoleClient.getSecurityInfo(actor, this._onSecurityInfo);
@@ -607,7 +629,7 @@ NetworkEventsHandler.prototype = {
         window.emit(EVENTS.UPDATING_RESPONSE_COOKIES, actor);
         break;
       case "responseStart":
-        NetMonitorView.RequestsMenu.updateRequest(aPacket.from, {
+        RequestCollection.update(aPacket.from, {
           httpVersion: aPacket.response.httpVersion,
           remoteAddress: aPacket.response.remoteAddress,
           remotePort: aPacket.response.remotePort,
@@ -618,7 +640,7 @@ NetworkEventsHandler.prototype = {
         window.emit(EVENTS.STARTED_RECEIVING_RESPONSE, actor);
         break;
       case "responseContent":
-        NetMonitorView.RequestsMenu.updateRequest(aPacket.from, {
+        RequestCollection.update(aPacket.from, {
           contentSize: aPacket.contentSize,
           transferredSize: aPacket.transferredSize,
           mimeType: aPacket.mimeType
@@ -627,7 +649,7 @@ NetworkEventsHandler.prototype = {
         window.emit(EVENTS.UPDATING_RESPONSE_CONTENT, actor);
         break;
       case "eventTimings":
-        NetMonitorView.RequestsMenu.updateRequest(aPacket.from, {
+        RequestCollection.update(aPacket.from, {
           totalTime: aPacket.totalTime
         });
         this.webConsoleClient.getEventTimings(actor, this._onEventTimings);
@@ -643,7 +665,7 @@ NetworkEventsHandler.prototype = {
    *        The message received from the server.
    */
   _onRequestHeaders: function(aResponse) {
-    NetMonitorView.RequestsMenu.updateRequest(aResponse.from, {
+    RequestCollection.update(aResponse.from, {
       requestHeaders: aResponse
     });
     window.emit(EVENTS.RECEIVED_REQUEST_HEADERS, aResponse.from);
@@ -656,7 +678,7 @@ NetworkEventsHandler.prototype = {
    *        The message received from the server.
    */
   _onRequestCookies: function(aResponse) {
-    NetMonitorView.RequestsMenu.updateRequest(aResponse.from, {
+    RequestCollection.update(aResponse.from, {
       requestCookies: aResponse
     });
     window.emit(EVENTS.RECEIVED_REQUEST_COOKIES, aResponse.from);
@@ -669,7 +691,7 @@ NetworkEventsHandler.prototype = {
    *        The message received from the server.
    */
   _onRequestPostData: function(aResponse) {
-    NetMonitorView.RequestsMenu.updateRequest(aResponse.from, {
+    RequestCollection.update(aResponse.from, {
       requestPostData: aResponse
     });
     window.emit(EVENTS.RECEIVED_REQUEST_POST_DATA, aResponse.from);
@@ -682,7 +704,7 @@ NetworkEventsHandler.prototype = {
    *        The message received from the server.
    */
    _onSecurityInfo: function(aResponse) {
-     NetMonitorView.RequestsMenu.updateRequest(aResponse.from, {
+     RequestCollection.update(aResponse.from, {
        securityInfo: aResponse.securityInfo
      });
 
@@ -696,7 +718,7 @@ NetworkEventsHandler.prototype = {
    *        The message received from the server.
    */
   _onResponseHeaders: function(aResponse) {
-    NetMonitorView.RequestsMenu.updateRequest(aResponse.from, {
+    RequestCollection.update(aResponse.from, {
       responseHeaders: aResponse
     });
     window.emit(EVENTS.RECEIVED_RESPONSE_HEADERS, aResponse.from);
@@ -709,7 +731,7 @@ NetworkEventsHandler.prototype = {
    *        The message received from the server.
    */
   _onResponseCookies: function(aResponse) {
-    NetMonitorView.RequestsMenu.updateRequest(aResponse.from, {
+    RequestCollection.update(aResponse.from, {
       responseCookies: aResponse
     });
     window.emit(EVENTS.RECEIVED_RESPONSE_COOKIES, aResponse.from);
@@ -722,7 +744,7 @@ NetworkEventsHandler.prototype = {
    *        The message received from the server.
    */
   _onResponseContent: function(aResponse) {
-    NetMonitorView.RequestsMenu.updateRequest(aResponse.from, {
+    RequestCollection.update(aResponse.from, {
       responseContent: aResponse
     });
     window.emit(EVENTS.RECEIVED_RESPONSE_CONTENT, aResponse.from);
@@ -735,7 +757,7 @@ NetworkEventsHandler.prototype = {
    *        The message received from the server.
    */
   _onEventTimings: function(aResponse) {
-    NetMonitorView.RequestsMenu.updateRequest(aResponse.from, {
+    RequestCollection.update(aResponse.from, {
       eventTimings: aResponse
     });
     window.emit(EVENTS.RECEIVED_EVENT_TIMINGS, aResponse.from);
@@ -868,3 +890,10 @@ function dumpn(str) {
 }
 
 let wantLogging = Services.prefs.getBoolPref("devtools.debugger.log");
+
+/**
+ * DOM query helper.
+ */
+function $(aSelector, aTarget = document) aTarget.querySelector(aSelector);
+function $$(aSelector, aTarget = document) aTarget.querySelectorAll(aSelector);
+

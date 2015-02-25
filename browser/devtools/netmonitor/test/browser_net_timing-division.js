@@ -9,15 +9,15 @@ function test() {
   initNetMonitor(CUSTOM_GET_URL).then(([aTab, aDebuggee, aMonitor]) => {
     info("Starting test... ");
 
-    let { $all, NetMonitorView } = aMonitor.panelWin;
+    let { $$, NetMonitorView } = aMonitor.panelWin;
     let { RequestsMenu } = NetMonitorView;
 
     RequestsMenu.lazyUpdate = false;
 
     waitForNetworkEvents(aMonitor, 2).then(() => {
-      let millisecondDivs = $all(".requests-menu-timings-division[division-scale=millisecond]");
-      let secondDivs = $all(".requests-menu-timings-division[division-scale=second]");
-      let minuteDivs = $all(".requests-menu-timings-division[division-scale=minute]");
+      let millisecondDivs = $$(".requests-menu-timings-division[division-scale=millisecond]");
+      let secondDivs = $$(".requests-menu-timings-division[division-scale=second]");
+      let minuteDivs = $$(".requests-menu-timings-division[division-scale=minute]");
 
       info("Number of millisecond divisions: " + millisecondDivs.length);
       info("Number of second divisions: " + secondDivs.length);

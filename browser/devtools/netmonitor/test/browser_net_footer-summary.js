@@ -13,7 +13,7 @@ function test() {
   initNetMonitor(FILTERING_URL).then(([aTab, aDebuggee, aMonitor]) => {
     info("Starting test... ");
 
-    let { $, L10N, NetMonitorView } = aMonitor.panelWin;
+    let { $, L10N, NetMonitorView, utils } = aMonitor.panelWin;
     let { RequestsMenu } = NetMonitorView;
 
     RequestsMenu.lazyUpdate = false;
@@ -96,10 +96,10 @@ function test() {
         return;
       }
 
-      let totalBytes = RequestsMenu._getTotalBytesOfRequests(visibleItems);
+      let totalBytes = utils.getTotalBytesOfRequests(visibleItems);
       let totalMillis =
-        RequestsMenu._getNewestRequest(visibleItems).attachment.endedMillis -
-        RequestsMenu._getOldestRequest(visibleItems).attachment.startedMillis;
+        utils.getNewestRequest(visibleItems).attachment.endedMillis -
+        utils.getOldestRequest(visibleItems).attachment.startedMillis;
 
       info("Computed total bytes: " + totalBytes);
       info("Computed total millis: " + totalMillis);

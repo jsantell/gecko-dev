@@ -78,6 +78,16 @@ registerCleanupFunction(() => {
   Services.prefs.clearUserPref("devtools.dump.emit");
 });
 
+function test () {
+  info("AHHHHHHHHHHHHHHHHH");
+  Task.spawn(spawnTest).then(finish, handleError);
+}
+
+function handleError(aError) {
+  ok(false, "Got an error: " + aError.message + "\n" + aError.stack);
+  finish();
+}
+
 function addTab(aUrl, aWindow) {
   info("Adding tab: " + aUrl);
 
@@ -186,7 +196,7 @@ function waitForNetworkEvents(aMonitor, aGetRequests, aPostRequests = 0) {
 
   let panel = aMonitor.panelWin;
   let events = panel.EVENTS;
-  let menu = panel.NetMonitorView.RequestsMenu;
+  let models = panel.RequestCollection;
 
   let progress = {};
   let genericEvents = 0;
@@ -237,7 +247,7 @@ function waitForNetworkEvents(aMonitor, aGetRequests, aPostRequests = 0) {
       postEvents + "/" + (aPostRequests * 2) + ", " +
       "got " + event + " for " + actor);
 
-    let url = menu.getItemByValue(actor).attachment.url;
+    let url = models.get(actor).url;
     updateProgressForURL(url, event);
     info("> Current state: " + JSON.stringify(progress, null, 2));
 
@@ -376,7 +386,14 @@ function verifyRequestItemTarget(aRequestItem, aMethod, aUrl, aData = {}) {
  */
 function waitFor (subject, eventName) {
   let deferred = promise.defer();
-  subject.once(eventName, deferred.resolve);
+  if (subject.once) {
+    subject.once(eventName, deferred.resolve);
+  } else {
+    subject.on(eventName, function handler () {
+      subject.off(eventName, handler);
+      deferred.resolve(arguments);
+    });
+  }
   return deferred.promise;
 }
 
