@@ -11,14 +11,14 @@ function test() {
     info("Starting test... ");
 
     let { document, L10N, NetMonitorView } = aMonitor.panelWin;
-    let { RequestsMenu, NetworkDetails } = NetMonitorView;
+    let { Sidebar, RequestsMenu, NetworkDetails } = NetMonitorView;
     let TAB_UPDATED = aMonitor.panelWin.EVENTS.TAB_UPDATED;
     RequestsMenu.lazyUpdate = false;
 
     Task.spawn(function*() {
       yield waitForNetworkEvents(aMonitor, 0, 1);
 
-      NetMonitorView.toggleDetailsPane({ visible: true });
+      Sidebar.toggle(true);
       RequestsMenu.selectedIndex = 0;
 
       yield waitFor(aMonitor.panelWin, TAB_UPDATED);

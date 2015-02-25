@@ -4,6 +4,12 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 EXTRA_JS_MODULES.devtools.netmonitor += [
+    'modules/request-collection.js',
+    'modules/request-model.js',
+    'modules/summary-renderer.js',
+    'modules/table-renderer.js',
+    'modules/types.js',
+    'modules/utils.js',
     'panel.js'
 ]
 

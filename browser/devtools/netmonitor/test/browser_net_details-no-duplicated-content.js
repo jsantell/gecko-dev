@@ -9,7 +9,7 @@ let test = Task.async(function* () {
   info("Initializing test");
   let [tab, debuggee, monitor] = yield initNetMonitor(CUSTOM_GET_URL);
   let panel = monitor.panelWin;
-  let { NetMonitorView, EVENTS } = panel;
+  let { RequestCollection, NetMonitorView, EVENTS } = panel;
   let { RequestsMenu, NetworkDetails } = NetMonitorView;
 
   const COOKIE_UNIQUE_PATH = "/do-not-use-in-other-tests-using-cookies";
@@ -69,7 +69,7 @@ let test = Task.async(function* () {
     debuggee.content.location = spec.pageURI;
 
     yield waitForNetworkEvents(monitor, 1);
-    RequestsMenu.clear();
+    RequestCollection.reset();
     yield waitForFinalDetailTabUpdate(spec.tabIndex, spec.isPost, spec.requestURI);
 
     is(spec.variablesView._store.length, spec.expectedScopeLength,
@@ -96,8 +96,8 @@ let test = Task.async(function* () {
     yield onNetworkEvent;
 
     ok(true, "Received NETWORK_EVENT. Selecting the item.");
-    let item = RequestsMenu.getItemAtIndex(0);
-    RequestsMenu.selectedItem = item;
+    let model = RequestCollection.at(0);
+    RequestsMenu.selectRequest(model);
 
     info("Item selected. Waiting for NETWORKDETAILSVIEW_POPULATED");
     yield onDetailsPopulated;
@@ -110,43 +110,10 @@ let test = Task.async(function* () {
 
     ok(true, "Request finished.");
 
-    /**
-     * Because this test uses lazy updates there's four scenarios to consider:
-     * #1: Everything is updated and test is ready to continue.
-     * #2: There's updates that are waiting to be flushed.
-     * #3: Updates are flushed but the tab update is still running.
-     * #4: There's pending updates and a tab update is still running.
-     *
-     * For case #1 there's not going to be a TAB_UPDATED event so don't wait for
-     * it (bug 1106181).
-     *
-     * For cases #2 and #3 it's enough to wait for one TAB_UPDATED event as for
-     * - case #2 the next flush will perform the final update and single
-     *   TAB_UPDATED event is emitted.
-     * - case #3 the running update is the final update that'll emit one
-     *   TAB_UPDATED event.
-     *
-     * For case #4 we must wait for the updates to be flushed before we can
-     * start waiting for TAB_UPDATED event or we'll continue the test right
-     * after the pending update finishes.
-     */
-    let hasQueuedUpdates = RequestsMenu._updateQueue.length !== 0;
     let hasRunningTabUpdate = NetworkDetails._viewState.updating[tabIndex];
 
-    if (hasQueuedUpdates || hasRunningTabUpdate) {
-      info("There's pending updates - waiting for them to finish.");
-      info("  hasQueuedUpdates: " + hasQueuedUpdates);
-      info("  hasRunningTabUpdate: " + hasRunningTabUpdate);
-
-      if (hasQueuedUpdates && hasRunningTabUpdate) {
-        info("Waiting for updates to be flushed.");
-        // _flushRequests calls .populate which emits the following event
-        yield waitFor(panel, EVENTS.NETWORKDETAILSVIEW_POPULATED);
-
-        info("Requests flushed.");
-      }
-
-      info("Waiting for final tab update.");
+    if (hasRunningTabUpdate) {
+      info("Waiting for tab to update...");
       yield waitFor(panel, EVENTS.TAB_UPDATED);
     }
 

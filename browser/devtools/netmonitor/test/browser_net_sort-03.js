@@ -13,7 +13,7 @@ function test() {
     // of the heavy dom manipulation associated with sorting.
     requestLongerTimeout(2);
 
-    let { $, $all, L10N, NetMonitorView } = aMonitor.panelWin;
+    let { $, $$, L10N, NetMonitorView } = aMonitor.panelWin;
     let { RequestsMenu } = NetMonitorView;
 
     // Loading the frame script and preparing the xhr request URLs so we can
@@ -138,7 +138,7 @@ function test() {
         "There should be a specific number of items in the requests menu.");
       is(RequestsMenu.visibleItems.length, aOrder.length,
         "There should be a specific number of visbile items in the requests menu.");
-      is($all(".side-menu-widget-item").length, aOrder.length,
+      is($$(".side-menu-widget-item").length, aOrder.length,
         "The visible items in the requests menu are, in fact, visible!");
 
       for (let i = 0; i < aOrder.length; i++) {

@@ -16,7 +16,7 @@ function test() {
     RequestsMenu.lazyUpdate = false;
 
     waitForNetworkEvents(aMonitor, 1).then(() => {
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(0),
+      verifyRequestItemTarget(aMonitor.panelWin, RequestsMenu.getItemAtIndex(0),
         "GET", CYRILLIC_URL, {
           status: 200,
           statusText: "OK"

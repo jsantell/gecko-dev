@@ -16,7 +16,7 @@ function test() {
     NetworkDetails._json.lazyEmpty = false;
 
     waitForNetworkEvents(aMonitor, 2).then(() => {
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(0),
+      verifyRequestItemTarget(aMonitor.panelWin, RequestsMenu.getItemAtIndex(0),
         "GET", CONTENT_TYPE_SJS + "?fmt=jsonp&jsonp=$_0123Fun", {
           status: 200,
           statusText: "OK",
@@ -25,7 +25,7 @@ function test() {
           size: L10N.getFormatStrWithNumbers("networkMenu.sizeKB", 0.04),
           time: true
         });
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(1),
+      verifyRequestItemTarget(aMonitor.panelWin, RequestsMenu.getItemAtIndex(1),
         "GET", CONTENT_TYPE_SJS + "?fmt=jsonp2&jsonp=$_4567Sad", {
           status: 200,
           statusText: "OK",

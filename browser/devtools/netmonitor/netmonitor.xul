@@ -22,6 +22,11 @@
           src="chrome://browser/content/devtools/theme-switching.js"/>
   <script type="text/javascript" src="netmonitor-controller.js"/>
   <script type="text/javascript" src="netmonitor-view.js"/>
+  <script type="text/javascript" src="netmonitor/requests-view.js"/>
+  <script type="text/javascript" src="netmonitor/details-view.js"/>
+  <script type="text/javascript" src="netmonitor/sidebar-view.js"/>
+  <script type="text/javascript" src="netmonitor/custom-request-view.js"/>
+  <script type="text/javascript" src="netmonitor/request-context-view.js"/>
 
   <popupset id="networkPopupSet">
     <menupopup id="network-request-popup">
@@ -369,6 +374,7 @@
                            crop="end"
                            flex="1"/>
                     <button id="headers-summary-resend"
+                            hidden="true"
                             class="devtools-toolbarbutton"
                             label="&netmonitorUI.summary.editAndResend;"/>
                     <button id="toggle-raw-headers"

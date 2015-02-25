@@ -9,7 +9,7 @@ function test() {
   initNetMonitor(CONTENT_TYPE_WITHOUT_CACHE_URL).then(([aTab, aDebuggee, aMonitor]) => {
     info("Starting test... ");
 
-    let { $, $all, EVENTS, ACTIVITY_TYPE, NetMonitorView, NetMonitorController } = aMonitor.panelWin;
+    let { $, $$, EVENTS, ACTIVITY_TYPE, NetMonitorView, NetMonitorController } = aMonitor.panelWin;
     let { RequestsMenu } = NetMonitorView;
 
     promise.all([
@@ -48,7 +48,7 @@ function test() {
     }
 
     function checkImageThumbnail() {
-      is($all(".requests-menu-icon[type=thumbnail]").length, 1,
+      is($$(".requests-menu-icon[type=thumbnail]").length, 1,
         "There should be only one image request with a thumbnail displayed.");
       is($(".requests-menu-icon[type=thumbnail]").src, TEST_IMAGE_DATA_URI,
         "The image requests-menu-icon thumbnail is displayed correctly.");

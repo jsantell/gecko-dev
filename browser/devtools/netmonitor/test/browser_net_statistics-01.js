@@ -10,7 +10,7 @@ function test() {
     info("Starting test... ");
 
     let panel = aMonitor.panelWin;
-    let { document, $, $all, EVENTS, NetMonitorView } = panel;
+    let { document, $, $$, EVENTS, NetMonitorView } = panel;
 
     is(NetMonitorView.currentFrontendMode, "network-inspector-view",
       "The initial frontend mode is correct.");
@@ -26,9 +26,9 @@ function test() {
       is($("#empty-cache-chart").childNodes.length, 1,
         "There should be a placeholder empty cache chart created now.");
 
-      is($all(".pie-chart-container[placeholder=true]").length, 2,
+      is($$(".pie-chart-container[placeholder=true]").length, 2,
         "Two placeholder pie chart appear to be rendered correctly.");
-      is($all(".table-chart-container[placeholder=true]").length, 2,
+      is($$(".table-chart-container[placeholder=true]").length, 2,
         "Two placeholder table chart appear to be rendered correctly.");
 
       promise.all([
@@ -41,10 +41,10 @@ function test() {
           "There should be a real empty cache chart created now.");
 
         Task.spawn(function*() {
-          yield until(() => $all(".pie-chart-container:not([placeholder=true])").length == 2);
+          yield until(() => $$(".pie-chart-container:not([placeholder=true])").length == 2);
           ok(true, "Two real pie charts appear to be rendered correctly.");
 
-          yield until(() => $all(".table-chart-container:not([placeholder=true])").length == 2);
+          yield until(() => $$(".table-chart-container:not([placeholder=true])").length == 2);
           ok(true, "Two real table charts appear to be rendered correctly.")
 
           teardown(aMonitor).then(finish);

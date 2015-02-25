@@ -5,7 +5,7 @@
  * Tests if copying a request's response works.
  */
 
-function test() {
+spawnTest(function*() {
   initNetMonitor(CONTENT_TYPE_WITHOUT_CACHE_URL).then(([aTab, aDebuggee, aMonitor]) => {
     info("Starting test... ");
 
@@ -37,4 +37,4 @@ function test() {
       teardown(aMonitor).then(finish);
     }
   });
-}
+});

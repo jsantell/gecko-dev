@@ -27,14 +27,15 @@ function test() {
     function setFreetextFilter(value) {
       // Set the text and manually call all callbacks synchronously to avoid the timeout
       RequestsMenu.freetextFilterBox.value = value;
-      RequestsMenu.requestsFreetextFilterEvent();
+      RequestsMenu._onURLFilter();
       RequestsMenu.userInputTimer.cancel();
-      RequestsMenu.reFilterRequests();
+      RequestsMenu.setURLFilter();
     }
 
     info("Starting test... ");
 
-    let { $, NetMonitorView } = aMonitor.panelWin;
+    let { panelWin: win } = aMonitor;
+    let { $, NetMonitorView, RequestCollection } = win;
     let { RequestsMenu } = NetMonitorView;
 
     RequestsMenu.lazyUpdate = false;
@@ -42,7 +43,7 @@ function test() {
     waitForNetworkEvents(aMonitor, 8).then(() => {
       EventUtils.sendMouseEvent({ type: "mousedown" }, $("#details-pane-toggle"));
 
-      isnot(RequestsMenu.selectedItem, null,
+      isnot(RequestsMenu.selectedRequest, null,
         "There should be a selected item in the requests menu.");
       is(RequestsMenu.selectedIndex, 0,
         "The first item should be selected in the requests menu.");
@@ -168,24 +169,24 @@ function test() {
     });
 
     function testContents(aVisibility) {
-      isnot(RequestsMenu.selectedItem, null,
+      isnot(RequestsMenu.selectedRequest, null,
         "There should still be a selected item after filtering.");
       is(RequestsMenu.selectedIndex, 0,
         "The first item should be still selected after filtering.");
       is(NetMonitorView.detailsPaneHidden, false,
         "The details pane should still be visible after filtering.");
 
-      is(RequestsMenu.items.length, aVisibility.length,
+      is(RequestCollection.length, aVisibility.length,
         "There should be a specific amount of items in the requests menu.");
-      is(RequestsMenu.visibleItems.length, aVisibility.filter(e => e).length,
-        "There should be a specific amount of visbile items in the requests menu.");
+      is(RequestCollection.getFiltered().length, aVisibility.filter(e => e).length,
+        "There should be a specific amount of visible items in the requests menu.");
 
       for (let i = 0; i < aVisibility.length; i++) {
-        is(RequestsMenu.getItemAtIndex(i).target.hidden, !aVisibility[i],
+        is(RequestsMenu.getElementAtIndex(i).hidden, !aVisibility[i],
           "The item at index " + i + " doesn't have the correct hidden state.");
       }
 
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(0),
+      verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(0),
         "GET", CONTENT_TYPE_SJS + "?fmt=html", {
           fuzzyUrl: true,
           status: 200,
@@ -193,7 +194,7 @@ function test() {
           type: "html",
           fullMimeType: "text/html; charset=utf-8"
       });
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(1),
+      verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(1),
         "GET", CONTENT_TYPE_SJS + "?fmt=css", {
           fuzzyUrl: true,
           status: 200,
@@ -201,7 +202,7 @@ function test() {
           type: "css",
           fullMimeType: "text/css; charset=utf-8"
       });
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(2),
+      verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(2),
         "GET", CONTENT_TYPE_SJS + "?fmt=js", {
           fuzzyUrl: true,
           status: 200,
@@ -209,7 +210,7 @@ function test() {
           type: "js",
           fullMimeType: "application/javascript; charset=utf-8"
       });
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(3),
+      verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(3),
         "GET", CONTENT_TYPE_SJS + "?fmt=font", {
           fuzzyUrl: true,
           status: 200,
@@ -217,7 +218,7 @@ function test() {
           type: "woff",
           fullMimeType: "font/woff"
       });
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(4),
+      verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(4),
         "GET", CONTENT_TYPE_SJS + "?fmt=image", {
           fuzzyUrl: true,
           status: 200,
@@ -225,7 +226,7 @@ function test() {
           type: "png",
           fullMimeType: "image/png"
       });
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(5),
+      verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(5),
         "GET", CONTENT_TYPE_SJS + "?fmt=audio", {
           fuzzyUrl: true,
           status: 200,
@@ -233,7 +234,7 @@ function test() {
           type: "ogg",
           fullMimeType: "audio/ogg"
       });
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(6),
+      verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(6),
         "GET", CONTENT_TYPE_SJS + "?fmt=video", {
           fuzzyUrl: true,
           status: 200,
@@ -241,7 +242,7 @@ function test() {
           type: "webm",
           fullMimeType: "video/webm"
       });
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(7),
+      verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(7),
         "GET", CONTENT_TYPE_SJS + "?fmt=flash", {
           fuzzyUrl: true,
           status: 200,

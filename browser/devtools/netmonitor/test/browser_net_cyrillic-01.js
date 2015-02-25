@@ -15,7 +15,7 @@ function test() {
     RequestsMenu.lazyUpdate = false;
 
     waitForNetworkEvents(aMonitor, 1).then(() => {
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(0),
+      verifyRequestItemTarget(aMonitor.panelWin, RequestsMenu.getItemAtIndex(0),
         "GET", CONTENT_TYPE_SJS + "?fmt=txt", {
           status: 200,
           statusText: "DA DA DA"

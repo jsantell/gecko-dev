@@ -26,7 +26,7 @@ function test() {
       yield waitForNetworkEvents(aMonitor, 5);
 
       REQUEST_URIS.forEach(function(uri, index) {
-        verifyRequestItemTarget(RequestsMenu.getItemAtIndex(index), "GET", uri);
+        verifyRequestItemTarget(aMonitor.panelWin, RequestsMenu.getItemAtIndex(index), "GET", uri);
       });
 
       yield teardown(aMonitor);

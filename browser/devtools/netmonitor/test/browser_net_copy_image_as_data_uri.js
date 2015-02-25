@@ -5,21 +5,20 @@
  * Tests if copying an image as data uri works.
  */
 
-function test() {
+spawnTest(function*() {
   initNetMonitor(CONTENT_TYPE_WITHOUT_CACHE_URL).then(([aTab, aDebuggee, aMonitor]) => {
     info("Starting test... ");
 
     let { NetMonitorView } = aMonitor.panelWin;
-    let { RequestsMenu } = NetMonitorView;
+    let { ContextMenu, RequestsMenu } = NetMonitorView;
 
     RequestsMenu.lazyUpdate = false;
 
     waitForNetworkEvents(aMonitor, 7).then(() => {
-      let requestItem = RequestsMenu.getItemAtIndex(5);
-      RequestsMenu.selectedItem = requestItem;
+      RequestsMenu.selectedIndex = 5;
 
       waitForClipboard(TEST_IMAGE_DATA_URI, function setup() {
-        RequestsMenu.copyImageAsDataUri();
+        ContextMenu._onCopyImage();
       }, function onSuccess() {
         ok(true, "Clipboard contains the currently selected image as data uri.");
         cleanUp();
@@ -35,4 +34,4 @@ function test() {
       teardown(aMonitor).then(finish);
     }
   });
-}
+});

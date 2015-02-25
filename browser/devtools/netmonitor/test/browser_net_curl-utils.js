@@ -23,22 +23,22 @@ function test() {
       };
 
       Task.spawn(function*() {
-        yield createCurlData(requests.get.attachment, gNetwork).then((aData) => {
+        yield createCurlData(requests.get, gNetwork).then((aData) => {
           test_findHeader(aData);
         });
 
-        yield createCurlData(requests.post.attachment, gNetwork).then((aData) => {
+        yield createCurlData(requests.post, gNetwork).then((aData) => {
           test_isUrlEncodedRequest(aData);
           test_writePostDataTextParams(aData);
         });
 
-        yield createCurlData(requests.multipart.attachment, gNetwork).then((aData) => {
+        yield createCurlData(requests.multipart, gNetwork).then((aData) => {
           test_isMultipartRequest(aData);
           test_getMultipartBoundary(aData);
           test_removeBinaryDataFromMultipartText(aData);
         });
 
-        yield createCurlData(requests.multipartForm.attachment, gNetwork).then((aData) => {
+        yield createCurlData(requests.multipartForm, gNetwork).then((aData) => {
           test_getHeadersFromMultipartText(aData);
         });
 

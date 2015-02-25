@@ -5,19 +5,18 @@
  * Tests if copying a request's url works.
  */
 
-function test() {
+spawnTest(function*() {
   initNetMonitor(CUSTOM_GET_URL).then(([aTab, aDebuggee, aMonitor]) => {
     info("Starting test... ");
 
     let { NetMonitorView } = aMonitor.panelWin;
-    let { RequestsMenu } = NetMonitorView;
+    let { RequestsMenu, ContextMenu } = NetMonitorView;
 
     waitForNetworkEvents(aMonitor, 1).then(() => {
-      let requestItem = RequestsMenu.getItemAtIndex(0);
-      RequestsMenu.selectedItem = requestItem;
-
-      waitForClipboard(requestItem.attachment.url, function setup() {
-        RequestsMenu.copyUrl();
+      RequestsMenu.selectRequestByIndex(0);
+      let model = RequestsMenu.getSelected(); 
+      waitForClipboard(model.url, function setup() {
+        ContextMenu._onCopyURL();
       }, function onSuccess() {
         ok(true, "Clipboard contains the currently selected item's url.");
         cleanUp();
@@ -33,4 +32,4 @@ function test() {
       teardown(aMonitor).then(finish);
     }
   });
-}
+});

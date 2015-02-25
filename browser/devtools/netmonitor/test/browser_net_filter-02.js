@@ -28,7 +28,8 @@ function test() {
     // It seems that this test may be slow on Ubuntu builds running on ec2.
     requestLongerTimeout(2);
 
-    let { $, NetMonitorView } = aMonitor.panelWin;
+    let { panelWin: win } = aMonitor;
+    let { $, NetMonitorView, RequestCollection } = win;
     let { RequestsMenu } = NetMonitorView;
 
     RequestsMenu.lazyUpdate = false;
@@ -36,7 +37,7 @@ function test() {
     waitForNetworkEvents(aMonitor, 8).then(() => {
       EventUtils.sendMouseEvent({ type: "mousedown" }, $("#details-pane-toggle"));
 
-      isnot(RequestsMenu.selectedItem, null,
+      isnot(RequestsMenu.selectedRequest, null,
         "There should be a selected item in the requests menu.");
       is(RequestsMenu.selectedIndex, 0,
         "The first item should be selected in the requests menu.");
@@ -84,25 +85,25 @@ function test() {
     });
 
     function testContents(aVisibility) {
-      isnot(RequestsMenu.selectedItem, null,
+      isnot(RequestsMenu.selectedRequest, null,
         "There should still be a selected item after filtering.");
       is(RequestsMenu.selectedIndex, 0,
         "The first item should be still selected after filtering.");
       is(NetMonitorView.detailsPaneHidden, false,
         "The details pane should still be visible after filtering.");
 
-      is(RequestsMenu.items.length, aVisibility.length,
+      is(RequestCollection.length, aVisibility.length,
         "There should be a specific amount of items in the requests menu.");
       is(RequestsMenu.visibleItems.length, aVisibility.filter(e => e).length,
         "There should be a specific amount of visbile items in the requests menu.");
 
       for (let i = 0; i < aVisibility.length; i++) {
-        is(RequestsMenu.getItemAtIndex(i).target.hidden, !aVisibility[i],
+        is(RequestsMenu.getElementAtIndex(i).hidden, !aVisibility[i],
           "The item at index " + i + " doesn't have the correct hidden state.");
       }
 
       for (let i = 0; i < aVisibility.length; i += 8) {
-        verifyRequestItemTarget(RequestsMenu.getItemAtIndex(i),
+        verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(i),
           "GET", CONTENT_TYPE_SJS + "?fmt=html", {
             fuzzyUrl: true,
             status: 200,
@@ -112,7 +113,7 @@ function test() {
         });
       }
       for (let i = 1; i < aVisibility.length; i += 8) {
-        verifyRequestItemTarget(RequestsMenu.getItemAtIndex(i),
+        verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(i),
           "GET", CONTENT_TYPE_SJS + "?fmt=css", {
             fuzzyUrl: true,
             status: 200,
@@ -122,7 +123,7 @@ function test() {
         });
       }
       for (let i = 2; i < aVisibility.length; i += 8) {
-        verifyRequestItemTarget(RequestsMenu.getItemAtIndex(i),
+        verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(i),
           "GET", CONTENT_TYPE_SJS + "?fmt=js", {
             fuzzyUrl: true,
             status: 200,
@@ -132,7 +133,7 @@ function test() {
         });
       }
       for (let i = 3; i < aVisibility.length; i += 8) {
-        verifyRequestItemTarget(RequestsMenu.getItemAtIndex(i),
+        verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(i),
           "GET", CONTENT_TYPE_SJS + "?fmt=font", {
             fuzzyUrl: true,
             status: 200,
@@ -142,7 +143,7 @@ function test() {
         });
       }
       for (let i = 4; i < aVisibility.length; i += 8) {
-        verifyRequestItemTarget(RequestsMenu.getItemAtIndex(i),
+        verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(i),
           "GET", CONTENT_TYPE_SJS + "?fmt=image", {
             fuzzyUrl: true,
             status: 200,
@@ -152,7 +153,7 @@ function test() {
         });
       }
       for (let i = 5; i < aVisibility.length; i += 8) {
-        verifyRequestItemTarget(RequestsMenu.getItemAtIndex(i),
+        verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(i),
           "GET", CONTENT_TYPE_SJS + "?fmt=audio", {
             fuzzyUrl: true,
             status: 200,
@@ -162,7 +163,7 @@ function test() {
         });
       }
       for (let i = 6; i < aVisibility.length; i += 8) {
-        verifyRequestItemTarget(RequestsMenu.getItemAtIndex(i),
+        verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(i),
           "GET", CONTENT_TYPE_SJS + "?fmt=video", {
             fuzzyUrl: true,
             status: 200,
@@ -172,7 +173,7 @@ function test() {
         });
       }
       for (let i = 7; i < aVisibility.length; i += 8) {
-        verifyRequestItemTarget(RequestsMenu.getItemAtIndex(i),
+        verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(i),
           "GET", CONTENT_TYPE_SJS + "?fmt=flash", {
             fuzzyUrl: true,
             status: 200,

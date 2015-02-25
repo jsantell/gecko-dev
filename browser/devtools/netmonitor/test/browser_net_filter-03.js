@@ -29,7 +29,8 @@ function test() {
     // It seems that this test may be slow on Ubuntu builds running on ec2.
     requestLongerTimeout(2);
 
-    let { $, NetMonitorView } = aMonitor.panelWin;
+    let { panelWin: win } = aMonitor;
+    let { $, NetMonitorView, RequestCollection } = win;
     let { RequestsMenu } = NetMonitorView;
 
     RequestsMenu.lazyUpdate = false;
@@ -37,7 +38,7 @@ function test() {
     waitForNetworkEvents(aMonitor, 7).then(() => {
       EventUtils.sendMouseEvent({ type: "mousedown" }, $("#details-pane-toggle"));
 
-      isnot(RequestsMenu.selectedItem, null,
+      isnot(RequestsMenu.selectedRequest, null,
         "There should be a selected item in the requests menu.");
       is(RequestsMenu.selectedIndex, 0,
         "The first item should be selected in the requests menu.");
@@ -92,25 +93,20 @@ function test() {
     }
 
     function testContents(aOrder, aVisible, aSelection) {
-      isnot(RequestsMenu.selectedItem, null,
+      isnot(RequestsMenu.selectedRequest, null,
         "There should still be a selected item after filtering.");
       is(RequestsMenu.selectedIndex, aSelection,
         "The first item should be still selected after filtering.");
       is(NetMonitorView.detailsPaneHidden, false,
         "The details pane should still be visible after filtering.");
 
-      is(RequestsMenu.items.length, aOrder.length,
-        "There should be a specific amount of items in the requests menu.");
-      is(RequestsMenu.visibleItems.length, aVisible,
-        "There should be a specific amount of visbile items in the requests menu.");
-
-      for (let i = 0; i < aOrder.length; i++) {
-        is(RequestsMenu.getItemAtIndex(i), RequestsMenu.items[i],
-          "The requests menu items aren't ordered correctly. Misplaced item " + i + ".");
-      }
+      is(win.document.querySelectorAll("#requests-menu-contents .request").length,
+        aOrder.length, "There should be a specific amount of items in the requests menu.");
+      is(win.document.querySelectorAll("#requests-menu-contents .request:not([hidden])").length,
+        aVisible, "There should be a specific amount of visbile items in the requests menu.");
 
       for (let i = 0, len = aOrder.length / 7; i < len; i++) {
-        verifyRequestItemTarget(RequestsMenu.getItemAtIndex(aOrder[i]),
+        verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(aOrder[i]),
           "GET", CONTENT_TYPE_SJS + "?fmt=html", {
             fuzzyUrl: true,
             status: 200,
@@ -120,7 +116,7 @@ function test() {
         });
       }
       for (let i = 0, len = aOrder.length / 7; i < len; i++) {
-        verifyRequestItemTarget(RequestsMenu.getItemAtIndex(aOrder[i + len]),
+        verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(aOrder[i + len]),
           "GET", CONTENT_TYPE_SJS + "?fmt=css", {
             fuzzyUrl: true,
             status: 200,
@@ -130,7 +126,7 @@ function test() {
         });
       }
       for (let i = 0, len = aOrder.length / 7; i < len; i++) {
-        verifyRequestItemTarget(RequestsMenu.getItemAtIndex(aOrder[i + len * 2]),
+        verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(aOrder[i + len * 2]),
           "GET", CONTENT_TYPE_SJS + "?fmt=js", {
             fuzzyUrl: true,
             status: 200,
@@ -140,7 +136,7 @@ function test() {
         });
       }
       for (let i = 0, len = aOrder.length / 7; i < len; i++) {
-        verifyRequestItemTarget(RequestsMenu.getItemAtIndex(aOrder[i + len * 3]),
+        verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(aOrder[i + len * 3]),
           "GET", CONTENT_TYPE_SJS + "?fmt=font", {
             fuzzyUrl: true,
             status: 200,
@@ -150,7 +146,7 @@ function test() {
         });
       }
       for (let i = 0, len = aOrder.length / 7; i < len; i++) {
-        verifyRequestItemTarget(RequestsMenu.getItemAtIndex(aOrder[i + len * 4]),
+        verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(aOrder[i + len * 4]),
           "GET", CONTENT_TYPE_SJS + "?fmt=image", {
             fuzzyUrl: true,
             status: 200,
@@ -160,7 +156,7 @@ function test() {
         });
       }
       for (let i = 0, len = aOrder.length / 7; i < len; i++) {
-        verifyRequestItemTarget(RequestsMenu.getItemAtIndex(aOrder[i + len * 5]),
+        verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(aOrder[i + len * 5]),
           "GET", CONTENT_TYPE_SJS + "?fmt=audio", {
             fuzzyUrl: true,
             status: 200,
@@ -170,7 +166,7 @@ function test() {
         });
       }
       for (let i = 0, len = aOrder.length / 7; i < len; i++) {
-        verifyRequestItemTarget(RequestsMenu.getItemAtIndex(aOrder[i + len * 6]),
+        verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(aOrder[i + len * 6]),
           "GET", CONTENT_TYPE_SJS + "?fmt=video", {
             fuzzyUrl: true,
             status: 200,

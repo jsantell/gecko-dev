@@ -75,12 +75,14 @@ add_task(function*() {
   }
 
   function waitSomeTime() {
+    info("Waiting some time...");
     let waitSomeTime = promise.defer();
     setTimeout(waitSomeTime.resolve, 50); // Wait to make sure no scrolls happen
     return waitSomeTime.promise;
   }
 
   function waitForScroll(aMonitor) {
-    return aMonitor._view.RequestsMenu.widget.once("scroll-to-bottom");
+    info("Waiting for scroll...");
+    return aMonitor._view.RequestsMenu.once("scroll-to-bottom");
   }
 });

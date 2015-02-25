@@ -27,30 +27,29 @@ function test() {
     RequestsMenu.lazyUpdate = false;
 
     waitForNetworkEvents(aMonitor, 0, 2).then(() => {
-      let origItem = RequestsMenu.getItemAtIndex(0);
-      RequestsMenu.selectedItem = origItem;
+      RequestsMenu.selectedIndex = 0;
+      let origReq = RequestsMenu.getSelected();
 
       waitFor(aMonitor.panelWin, TAB_UPDATED).then(() => {
         // add a new custom request cloned from selected request
-        RequestsMenu.cloneSelectedRequest();
+        NetMonitorView.CustomRequest.populate(origReq);
         return waitFor(aMonitor.panelWin, CUSTOMREQUESTVIEW_POPULATED);
       }).then(() => {
-        testCustomForm(origItem.attachment);
+        testCustomForm(origReq);
 
-        let customItem = RequestsMenu.selectedItem;
-        testCustomItem(customItem, origItem);
+        testCustomItem(2, 0);
 
         // edit the custom request
         editCustomForm(() => {
-          testCustomItemChanged(customItem, origItem);
+          testCustomItemChanged(2, 0);
 
           waitForNetworkEvents(aMonitor, 0, 1).then(() => {
-            let sentItem = RequestsMenu.selectedItem;
-            testSentRequest(sentItem.attachment, origItem.attachment);
+            let sentItem = RequestsMenu.getSelected();
+            testSentRequest(sentItem, origReq);
             finishUp(aMonitor);
           });
           // send the new request
-          RequestsMenu.sendCustomRequest();
+          NetMonitorView.CustomRequest.populate(origReq);
         });
       });
     });
@@ -59,24 +58,28 @@ function test() {
   });
 }
 
-function testCustomItem(aItem, aOrigItem) {
-  let method = aItem.target.querySelector(".requests-menu-method").value;
-  let origMethod = aOrigItem.target.querySelector(".requests-menu-method").value;
+function testCustomItem(aItemIndex, aOrigItemIndex) {
+  let menu = gPanelDoc.getElementById("requests-menu-contents");
+  let method = menu.querySelectorAll(".requests-menu-method")[aItemIndex].value;
+  let origMethod = menu.querySelectorAll(".requests-menu-method")[aOrigItemIndex].value;
+  ok(method && origMethod, "Found a method for both items");
   is(method, origMethod, "menu item is showing the same method as original request");
 
-  let file = aItem.target.querySelector(".requests-menu-file").value;
-  let origFile = aOrigItem.target.querySelector(".requests-menu-file").value;
+  let file = menu.querySelectorAll(".requests-menu-file")[aItemIndex].value;
+  let origFile = menu.querySelectorAll(".requests-menu-file")[aOrigItemIndex].value;
+  ok(file && origFile, "Found a file for both items");
   is(file, origFile, "menu item is showing the same file name as original request");
 
-  let domain = aItem.target.querySelector(".requests-menu-domain").value;
-  let origDomain = aOrigItem.target.querySelector(".requests-menu-domain").value;
+  let domain = menu.querySelectorAll(".requests-menu-domain")[aItemIndex].value;
+  let origDomain = menu.querySelectorAll(".requests-menu-domain")[aOrigItemIndex].value;
+  ok(domain && origDomain, "Found a domain for both items");
   is(domain, origDomain, "menu item is showing the same domain as original request");
 }
 
-function testCustomItemChanged(aItem, aOrigItem) {
-  let file = aItem.target.querySelector(".requests-menu-file").value;
-  let expectedFile = aOrigItem.target.querySelector(".requests-menu-file").value + "&" + ADD_QUERY;
-
+function testCustomItemChanged(aItemIndex, aOrigItemIndex) {
+  let menu = gPanelDoc.getElementById("requests-menu-contents");
+  let file = menu.querySelectorAll(".requests-menu-file")[aItemIndex].value;
+  let expectedFile = menu.querySelectorAll(".requests-menu-file")[aOrigItemIndex].value + "&" + ADD_QUERY;
   is(file, expectedFile, "menu item is updated to reflect url entered in form");
 }
 

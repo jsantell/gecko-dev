@@ -15,7 +15,7 @@ function test() {
     RequestsMenu.lazyUpdate = false;
 
     function verifyRequest(aOffset) {
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(aOffset),
+      verifyRequestItemTarget(aMonitor.panelWin, RequestsMenu.getItemAtIndex(aOffset),
         "GET", CONTENT_TYPE_SJS + "?fmt=json-long", {
           status: 200,
           statusText: "OK",

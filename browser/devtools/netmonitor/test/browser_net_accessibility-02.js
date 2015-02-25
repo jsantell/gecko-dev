@@ -13,9 +13,9 @@ function test() {
     requestLongerTimeout(2);
 
     let { window, $, NetMonitorView } = aMonitor.panelWin;
-    let { RequestsMenu } = NetMonitorView;
+    let { Sidebar, RequestsMenu: { tableRenderer: Table }} = NetMonitorView;
 
-    RequestsMenu.lazyUpdate = false;
+    Table.lazyUpdate = false;
 
     waitForNetworkEvents(aMonitor, 2).then(() => {
       check(-1, false);
@@ -115,9 +115,9 @@ function test() {
     function check(aSelectedIndex, aPaneVisibility) {
       info("Performing check " + (count++) + ".");
 
-      is(RequestsMenu.selectedIndex, aSelectedIndex,
+      is(Table.getSelectedIndex(), aSelectedIndex,
         "The selected item in the requests menu was incorrect.");
-      is(NetMonitorView.detailsPaneHidden, !aPaneVisibility,
+      is(Sidebar.detailsPaneHidden, !aPaneVisibility,
         "The network requests details pane visibility state was incorrect.");
     }
 

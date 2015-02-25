@@ -28,7 +28,7 @@ function test() {
   initNetMonitor(FILTERING_URL).then(([aTab, aDebuggee, aMonitor]) => {
     info("Starting test... ");
 
-    let { Prefs, NetMonitorView } = aMonitor.panelWin;
+    let { Prefs, NetMonitorView, RequestCollection } = aMonitor.panelWin;
     let { RequestsMenu } = NetMonitorView;
 
     RequestsMenu.lazyUpdate = false;

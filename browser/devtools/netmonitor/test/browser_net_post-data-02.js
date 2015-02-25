@@ -11,13 +11,13 @@ function test() {
     info("Starting test... ");
 
     let { document, L10N, NetMonitorView } = aMonitor.panelWin;
-    let { RequestsMenu, NetworkDetails } = NetMonitorView;
+    let { RequestsMenu, NetworkDetails, Sidebar } = NetMonitorView;
 
     RequestsMenu.lazyUpdate = false;
     NetworkDetails._params.lazyEmpty = false;
 
     waitForNetworkEvents(aMonitor, 0, 1).then(() => {
-      NetMonitorView.toggleDetailsPane({ visible: true }, 2)
+      Sidebar.toggle(true, 2);
       RequestsMenu.selectedIndex = 0;
 
       let TAB_UPDATED = aMonitor.panelWin.EVENTS.TAB_UPDATED;

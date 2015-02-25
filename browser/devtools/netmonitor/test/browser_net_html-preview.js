@@ -10,7 +10,7 @@ function test() {
     info("Starting test... ");
 
     let { $, document, EVENTS, NetMonitorView } = aMonitor.panelWin;
-    let { RequestsMenu } = NetMonitorView;
+    let { Sidebar, RequestsMenu } = NetMonitorView;
 
     RequestsMenu.lazyUpdate = false;
 
@@ -26,7 +26,7 @@ function test() {
         "The preview tabpanel should be hidden for non html responses.");
 
       RequestsMenu.selectedIndex = 4;
-      NetMonitorView.toggleDetailsPane({ visible: true, animated: false }, 6);
+      Sidebar.toggle(true, 6);
 
       is($("#event-details-pane").selectedIndex, 6,
         "The sixth tab in the details pane should be selected.");

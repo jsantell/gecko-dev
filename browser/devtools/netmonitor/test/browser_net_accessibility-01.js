@@ -13,55 +13,55 @@ function test() {
     requestLongerTimeout(2);
 
     let { NetMonitorView } = aMonitor.panelWin;
-    let { RequestsMenu } = NetMonitorView;
+    let { Sidebar, RequestsMenu: { tableRenderer: Table }} = NetMonitorView;
 
-    RequestsMenu.lazyUpdate = false;
+    Table.lazyUpdate = false;
 
     waitForNetworkEvents(aMonitor, 2).then(() => {
       check(-1, false);
 
-      RequestsMenu.focusLastVisibleItem();
+      Table.focusLastVisibleItem();
       check(1, true);
-      RequestsMenu.focusFirstVisibleItem();
+      Table.focusFirstVisibleItem();
       check(0, true);
 
-      RequestsMenu.focusNextItem();
+      Table.focusNextItem();
       check(1, true);
-      RequestsMenu.focusPrevItem();
+      Table.focusPrevItem();
       check(0, true);
 
-      RequestsMenu.focusItemAtDelta(+1);
+      Table.focusItemAtDelta(+1);
       check(1, true);
-      RequestsMenu.focusItemAtDelta(-1);
+      Table.focusItemAtDelta(-1);
       check(0, true);
 
-      RequestsMenu.focusItemAtDelta(+10);
+      Table.focusItemAtDelta(+10);
       check(1, true);
-      RequestsMenu.focusItemAtDelta(-10);
+      Table.focusItemAtDelta(-10);
       check(0, true);
 
       aDebuggee.performRequests(18);
       return waitForNetworkEvents(aMonitor, 18);
     })
     .then(() => {
-      RequestsMenu.focusLastVisibleItem();
+      Table.focusLastVisibleItem();
       check(19, true);
-      RequestsMenu.focusFirstVisibleItem();
+      Table.focusFirstVisibleItem();
       check(0, true);
 
-      RequestsMenu.focusNextItem();
+      Table.focusNextItem();
       check(1, true);
-      RequestsMenu.focusPrevItem();
+      Table.focusPrevItem();
       check(0, true);
 
-      RequestsMenu.focusItemAtDelta(+10);
+      Table.focusItemAtDelta(+10);
       check(10, true);
-      RequestsMenu.focusItemAtDelta(-10);
+      Table.focusItemAtDelta(-10);
       check(0, true);
 
-      RequestsMenu.focusItemAtDelta(+100);
+      Table.focusItemAtDelta(+100);
       check(19, true);
-      RequestsMenu.focusItemAtDelta(-100);
+      Table.focusItemAtDelta(-100);
       check(0, true);
 
       teardown(aMonitor).then(finish);
@@ -72,9 +72,9 @@ function test() {
     function check(aSelectedIndex, aPaneVisibility) {
       info("Performing check " + (count++) + ".");
 
-      is(RequestsMenu.selectedIndex, aSelectedIndex,
+      is(Table.selectedIndex, aSelectedIndex,
         "The selected item in the requests menu was incorrect.");
-      is(NetMonitorView.detailsPaneHidden, !aPaneVisibility,
+      is(Sidebar.detailsPaneHidden, !aPaneVisibility,
         "The network requests details pane visibility state was incorrect.");
     }
 

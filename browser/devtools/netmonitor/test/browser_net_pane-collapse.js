@@ -10,6 +10,7 @@ function test() {
     info("Starting test... ");
 
     let { document, Prefs, NetMonitorView } = aMonitor.panelWin;
+    let { Sidebar } = NetMonitorView;
     let detailsPane = document.getElementById("details-pane");
     let detailsPaneToggleButton = document.getElementById("details-pane-toggle");
 
@@ -17,7 +18,7 @@ function test() {
        detailsPaneToggleButton.hasAttribute("pane-collapsed"),
       "The details pane should initially be hidden.");
 
-    NetMonitorView.toggleDetailsPane({ visible: true, animated: false });
+    Sidebar.toggle(true);
 
     let width = ~~(detailsPane.getAttribute("width"));
     is(width, Prefs.networkDetailsWidth,
@@ -32,7 +33,7 @@ function test() {
        !detailsPaneToggleButton.hasAttribute("pane-collapsed"),
       "The details pane should at this point be visible.");
 
-    NetMonitorView.toggleDetailsPane({ visible: false, animated: true });
+    Sidebar.toggle(false);
 
     let margin = -(width + 1) + "px";
     is(width, Prefs.networkDetailsWidth,
@@ -47,7 +48,7 @@ function test() {
        detailsPaneToggleButton.hasAttribute("pane-collapsed"),
       "The details pane should not be visible after collapsing.");
 
-    NetMonitorView.toggleDetailsPane({ visible: true, animated: false });
+    Sidebar.toggle(true);
 
     is(width, Prefs.networkDetailsWidth,
       "The details pane has an incorrect width after uncollapsing.");

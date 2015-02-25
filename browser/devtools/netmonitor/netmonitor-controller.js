@@ -71,6 +71,9 @@ const EVENTS = {
   // When a tab is selected in the NetworkDetailsView and subsequently rendered.
   TAB_UPDATED: "NetMonitor:TabUpdated",
 
+  // Fired when Sidebar is toggled to display or hide.
+  SIDEBAR_TOGGLED: "NetMonitor:SidebarToggled",
+
   // Fired when Sidebar has finished being populated.
   SIDEBAR_POPULATED: "NetMonitor:SidebarPopulated",
 
@@ -79,6 +82,9 @@ const EVENTS = {
 
   // Fired when CustomRequestView has finished being populated.
   CUSTOMREQUESTVIEW_POPULATED: "NetMonitor:CustomRequestViewPopulated",
+
+  // Fired when a custom HTTP request is sent.
+  CUSTOM_REQUEST_SENT: "NetMonitor:CustomRequestSent",
 
   // Fired when charts have been displayed in the PerformanceStatisticsView.
   PLACEHOLDER_CHARTS_DISPLAYED: "NetMonitor:PlaceholderChartsDisplayed",
@@ -117,18 +123,15 @@ Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
 const promise = Cu.import("resource://gre/modules/Promise.jsm", {}).Promise;
 const EventEmitter = require("devtools/toolkit/event-emitter");
+const utils = require("devtools/netmonitor/utils");
+const types = require("devtools/netmonitor/types");
 const Editor = require("devtools/sourceeditor/editor");
-const {Tooltip} = require("devtools/shared/widgets/Tooltip");
 const {ToolSidebar} = require("devtools/framework/sidebar");
+const RequestCollection = new require("devtools/netmonitor/request-collection").RequestCollection();
+let { console } = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
 
 XPCOMUtils.defineLazyModuleGetter(this, "Chart",
   "resource:///modules/devtools/Chart.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "Curl",
-  "resource:///modules/devtools/Curl.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "CurlUtils",
-  "resource:///modules/devtools/Curl.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
   "resource://gre/modules/Task.jsm");
@@ -163,16 +166,14 @@ let NetMonitorController = {
    * @return object
    *         A promise that is resolved when the monitor finishes startup.
    */
-  startupNetMonitor: function() {
+  startupNetMonitor: Task.async(function*() {
     if (this._startup) {
       return this._startup;
     }
 
-    NetMonitorView.initialize();
-
-    // Startup is synchronous, for now.
+    yield NetMonitorView.initialize();
     return this._startup = promise.resolve();
-  },
+  }),
 
   /**
    * Destroys the view and disconnects the monitor client from the server.
@@ -180,19 +181,20 @@ let NetMonitorController = {
    * @return object
    *         A promise that is resolved when the monitor finishes shutdown.
    */
-  shutdownNetMonitor: function() {
+  shutdownNetMonitor: Task.async(function*() {
     if (this._shutdown) {
       return this._shutdown;
     }
 
-    NetMonitorView.destroy();
+    RequestCollection.disable();
+    yield NetMonitorView.destroy();
     this.TargetEventsHandler.disconnect();
     this.NetworkEventsHandler.disconnect();
     this.disconnect();
 
     // Shutdown is synchronous, for now.
     return this._shutdown = promise.resolve();
-  },
+  }),
 
   /**
    * Initiates remote or chrome network monitoring based on the current target,
@@ -246,6 +248,89 @@ let NetMonitorController = {
    */
   isConnected: function() {
     return !!this.client;
+  },
+
+  /**
+   * Resets the requests collection. Views listen to this event and will update appropriately.
+   */
+  reset: function () {
+    RequestCollection.reset();
+  },
+
+  /**
+   * Sets up a monitoring session.
+   *
+   * @param DebuggerClient aClient
+   *        The debugger client.
+   * @param object aTabGrip
+   *        The remote protocol grip of the tab.
+   * @param function aCallback
+   *        A function to invoke once the client attached to the console client.
+   */
+  _startMonitoringTab: function(aClient, aTabGrip, aCallback) {
+    if (!aClient) {
+      Cu.reportError("No client found!");
+      return;
+    }
+    this.client = aClient;
+
+    aClient.attachTab(aTabGrip.actor, (aResponse, aTabClient) => {
+      if (!aTabClient) {
+        Cu.reportError("No tab client found!");
+        return;
+      }
+      this.tabClient = aTabClient;
+
+      aClient.attachConsole(aTabGrip.consoleActor, LISTENERS, (aResponse, aWebConsoleClient) => {
+        if (!aWebConsoleClient) {
+          Cu.reportError("Couldn't attach to console: " + aResponse.error);
+          return;
+        }
+        this.webConsoleClient = aWebConsoleClient;
+        this.webConsoleClient.setPreferences(NET_PREFS, () => {
+          this.TargetEventsHandler.connect();
+          this.NetworkEventsHandler.connect();
+
+          if (aCallback) {
+            aCallback();
+          }
+        });
+      });
+    });
+  },
+
+  /**
+   * Sets up a chrome monitoring session.
+   *
+   * @param DebuggerClient aClient
+   *        The debugger client.
+   * @param object aConsoleActor
+   *        The remote protocol grip of the chrome debugger.
+   * @param function aCallback
+   *        A function to invoke once the client attached to the console client.
+   */
+  _startChromeMonitoring: function(aClient, aConsoleActor, aCallback) {
+    if (!aClient) {
+      Cu.reportError("No client found!");
+      return;
+    }
+    this.client = aClient;
+
+    aClient.attachConsole(aConsoleActor, LISTENERS, (aResponse, aWebConsoleClient) => {
+      if (!aWebConsoleClient) {
+        Cu.reportError("Couldn't attach to console: " + aResponse.error);
+        return;
+      }
+      this.webConsoleClient = aWebConsoleClient;
+      this.webConsoleClient.setPreferences(NET_PREFS, () => {
+        this.TargetEventsHandler.connect();
+        this.NetworkEventsHandler.connect();
+
+        if (aCallback) {
+          aCallback();
+        }
+      });
+    });
   },
 
   /**
@@ -408,8 +493,7 @@ TargetEventsHandler.prototype = {
       case "will-navigate": {
         // Reset UI.
         if (!Services.prefs.getBoolPref("devtools.webconsole.persistlog")) {
-          NetMonitorView.RequestsMenu.reset();
-          NetMonitorView.Sidebar.toggle(false);
+          NetMonitorController.reset();
         }
         // Switch to the default network traffic inspector view.
         if (NetMonitorController.getCurrentActivity() == ACTIVITY_TYPE.NONE) {
@@ -509,10 +593,11 @@ NetworkEventsHandler.prototype = {
    */
   _onNetworkEvent: function(type, networkInfo) {
     let { actor, startedDateTime, request: { method, url }, isXHR, fromCache } = networkInfo;
+    let startedMillis = Date.parse(startedDateTime);
 
-    NetMonitorView.RequestsMenu.addRequest(
-      actor, startedDateTime, method, url, isXHR, fromCache
-    );
+    RequestCollection.add({
+      gNetwork, isXHR, url, method, id: actor, startedMillis, fromCache
+    });
     window.emit(EVENTS.NETWORK_EVENT, actor);
   },
 
@@ -529,36 +614,41 @@ NetworkEventsHandler.prototype = {
   _onNetworkEventUpdate: function(type, { packet, networkInfo }) {
     let { actor, request: { url } } = networkInfo;
 
+    // Skip events from unknown actors.
+    if (!RequestCollection.get(actor)) {
+      return;
+    }
+
     switch (packet.updateType) {
       case "requestHeaders":
         this.webConsoleClient.getRequestHeaders(actor, this._onRequestHeaders);
-        window.emit(EVENTS.UPDATING_REQUEST_HEADERS, [actor, url]);
+        window.emit(EVENTS.UPDATING_REQUEST_HEADERS, actor);
         break;
       case "requestCookies":
         this.webConsoleClient.getRequestCookies(actor, this._onRequestCookies);
-        window.emit(EVENTS.UPDATING_REQUEST_COOKIES, [actor, url]);
+        window.emit(EVENTS.UPDATING_REQUEST_COOKIES, actor);
         break;
       case "requestPostData":
         this.webConsoleClient.getRequestPostData(actor, this._onRequestPostData);
-        window.emit(EVENTS.UPDATING_REQUEST_POST_DATA, [actor, url]);
+        window.emit(EVENTS.UPDATING_REQUEST_POST_DATA, actor);
         break;
       case "securityInfo":
-        NetMonitorView.RequestsMenu.updateRequest(actor, {
-          securityState: networkInfo.securityInfo,
+        RequestCollection.update(actor, {
+          securityState: networkInfo.securityInfo
         });
         this.webConsoleClient.getSecurityInfo(actor, this._onSecurityInfo);
-        window.emit(EVENTS.UPDATING_SECURITY_INFO, [actor, url]);
+        window.emit(EVENTS.UPDATING_SECURITY_INFO, actor);
         break;
       case "responseHeaders":
         this.webConsoleClient.getResponseHeaders(actor, this._onResponseHeaders);
-        window.emit(EVENTS.UPDATING_RESPONSE_HEADERS, [actor, url]);
+        window.emit(EVENTS.UPDATING_RESPONSE_HEADERS, actor);
         break;
       case "responseCookies":
         this.webConsoleClient.getResponseCookies(actor, this._onResponseCookies);
-        window.emit(EVENTS.UPDATING_RESPONSE_COOKIES, [actor, url]);
+        window.emit(EVENTS.UPDATING_RESPONSE_COOKIES, actor);
         break;
       case "responseStart":
-        NetMonitorView.RequestsMenu.updateRequest(actor, {
+        RequestCollection.update(actor, {
           httpVersion: networkInfo.response.httpVersion,
           remoteAddress: networkInfo.response.remoteAddress,
           remotePort: networkInfo.response.remotePort,
@@ -566,23 +656,23 @@ NetworkEventsHandler.prototype = {
           statusText: networkInfo.response.statusText,
           headersSize: networkInfo.response.headersSize
         });
-        window.emit(EVENTS.STARTED_RECEIVING_RESPONSE, [actor, url]);
+        window.emit(EVENTS.STARTED_RECEIVING_RESPONSE, actor);
         break;
       case "responseContent":
-        NetMonitorView.RequestsMenu.updateRequest(actor, {
+        RequestCollection.update(actor, {
           contentSize: networkInfo.response.bodySize,
           transferredSize: networkInfo.response.transferredSize,
           mimeType: networkInfo.response.content.mimeType
         });
         this.webConsoleClient.getResponseContent(actor, this._onResponseContent);
-        window.emit(EVENTS.UPDATING_RESPONSE_CONTENT, [actor, url]);
+        window.emit(EVENTS.UPDATING_RESPONSE_CONTENT, actor);
         break;
       case "eventTimings":
-        NetMonitorView.RequestsMenu.updateRequest(actor, {
+        RequestCollection.update(actor, {
           totalTime: networkInfo.totalTime
         });
         this.webConsoleClient.getEventTimings(actor, this._onEventTimings);
-        window.emit(EVENTS.UPDATING_EVENT_TIMINGS, [actor, url]);
+        window.emit(EVENTS.UPDATING_EVENT_TIMINGS, actor);
         break;
     }
   },
@@ -594,7 +684,7 @@ NetworkEventsHandler.prototype = {
    *        The message received from the server.
    */
   _onRequestHeaders: function(aResponse) {
-    NetMonitorView.RequestsMenu.updateRequest(aResponse.from, {
+    RequestCollection.update(aResponse.from, {
       requestHeaders: aResponse
     });
     window.emit(EVENTS.RECEIVED_REQUEST_HEADERS, aResponse.from);
@@ -607,7 +697,7 @@ NetworkEventsHandler.prototype = {
    *        The message received from the server.
    */
   _onRequestCookies: function(aResponse) {
-    NetMonitorView.RequestsMenu.updateRequest(aResponse.from, {
+    RequestCollection.update(aResponse.from, {
       requestCookies: aResponse
     });
     window.emit(EVENTS.RECEIVED_REQUEST_COOKIES, aResponse.from);
@@ -620,7 +710,7 @@ NetworkEventsHandler.prototype = {
    *        The message received from the server.
    */
   _onRequestPostData: function(aResponse) {
-    NetMonitorView.RequestsMenu.updateRequest(aResponse.from, {
+    RequestCollection.update(aResponse.from, {
       requestPostData: aResponse
     });
     window.emit(EVENTS.RECEIVED_REQUEST_POST_DATA, aResponse.from);
@@ -633,7 +723,7 @@ NetworkEventsHandler.prototype = {
    *        The message received from the server.
    */
    _onSecurityInfo: function(aResponse) {
-     NetMonitorView.RequestsMenu.updateRequest(aResponse.from, {
+     RequestCollection.update(aResponse.from, {
        securityInfo: aResponse.securityInfo
      });
 
@@ -647,7 +737,7 @@ NetworkEventsHandler.prototype = {
    *        The message received from the server.
    */
   _onResponseHeaders: function(aResponse) {
-    NetMonitorView.RequestsMenu.updateRequest(aResponse.from, {
+    RequestCollection.update(aResponse.from, {
       responseHeaders: aResponse
     });
     window.emit(EVENTS.RECEIVED_RESPONSE_HEADERS, aResponse.from);
@@ -660,7 +750,7 @@ NetworkEventsHandler.prototype = {
    *        The message received from the server.
    */
   _onResponseCookies: function(aResponse) {
-    NetMonitorView.RequestsMenu.updateRequest(aResponse.from, {
+    RequestCollection.update(aResponse.from, {
       responseCookies: aResponse
     });
     window.emit(EVENTS.RECEIVED_RESPONSE_COOKIES, aResponse.from);
@@ -673,7 +763,7 @@ NetworkEventsHandler.prototype = {
    *        The message received from the server.
    */
   _onResponseContent: function(aResponse) {
-    NetMonitorView.RequestsMenu.updateRequest(aResponse.from, {
+    RequestCollection.update(aResponse.from, {
       responseContent: aResponse
     });
     window.emit(EVENTS.RECEIVED_RESPONSE_CONTENT, aResponse.from);
@@ -686,7 +776,7 @@ NetworkEventsHandler.prototype = {
    *        The message received from the server.
    */
   _onEventTimings: function(aResponse) {
-    NetMonitorView.RequestsMenu.updateRequest(aResponse.from, {
+    RequestCollection.update(aResponse.from, {
       eventTimings: aResponse
     });
     window.emit(EVENTS.RECEIVED_EVENT_TIMINGS, aResponse.from);
@@ -727,7 +817,7 @@ NetworkEventsHandler.prototype = {
     });
 
     return deferred.promise;
-  }
+  },
 };
 
 /**
@@ -826,3 +916,10 @@ function dumpn(str) {
 }
 
 let wantLogging = Services.prefs.getBoolPref("devtools.debugger.log");
+
+/**
+ * DOM query helper.
+ */
+function $(aSelector, aTarget = document) aTarget.querySelector(aSelector);
+function $$(aSelector, aTarget = document) aTarget.querySelectorAll(aSelector);
+

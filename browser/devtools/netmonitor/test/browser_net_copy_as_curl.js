@@ -44,16 +44,14 @@ function test() {
       : EXPECTED_POSIX_RESULT;
 
     let { NetMonitorView } = aMonitor.panelWin;
-    let { RequestsMenu } = NetMonitorView;
+    let { RequestsMenu, ContextMenu } = NetMonitorView;
 
     RequestsMenu.lazyUpdate = false;
 
     waitForNetworkEvents(aMonitor, 1).then(() => {
-      let requestItem = RequestsMenu.getItemAtIndex(0);
-      RequestsMenu.selectedItem = requestItem;
-
+      RequestsMenu.selectedIndex = 0;
       waitForClipboard(EXPECTED_RESULT, function setup() {
-        RequestsMenu.copyAsCurl();
+        ContextMenu._onCopyCurl();
       }, function onSuccess() {
         ok(true, "Clipboard contains a cURL command for the currently selected item's url.");
         cleanUp();

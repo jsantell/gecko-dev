@@ -9,13 +9,14 @@ function test() {
   initNetMonitor(CONTENT_TYPE_WITHOUT_CACHE_URL).then(([aTab, aDebuggee, aMonitor]) => {
     info("Starting test... ");
 
-    let { document, L10N, Editor, NetMonitorView } = aMonitor.panelWin;
+    let { panelWin: win } = aMonitor;
+    let { document, L10N, Editor, NetMonitorView } = win;
     let { RequestsMenu } = NetMonitorView;
 
     RequestsMenu.lazyUpdate = false;
 
     waitForNetworkEvents(aMonitor, 7).then(() => {
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(0),
+      verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(0),
         "GET", CONTENT_TYPE_SJS + "?fmt=xml", {
           status: 200,
           statusText: "OK",
@@ -24,7 +25,7 @@ function test() {
           size: L10N.getFormatStrWithNumbers("networkMenu.sizeKB", 0.04),
           time: true
         });
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(1),
+      verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(1),
         "GET", CONTENT_TYPE_SJS + "?fmt=css", {
           status: 200,
           statusText: "OK",
@@ -33,7 +34,7 @@ function test() {
           size: L10N.getFormatStrWithNumbers("networkMenu.sizeKB", 0.03),
           time: true
         });
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(2),
+      verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(2),
         "GET", CONTENT_TYPE_SJS + "?fmt=js", {
           status: 200,
           statusText: "OK",
@@ -42,7 +43,7 @@ function test() {
           size: L10N.getFormatStrWithNumbers("networkMenu.sizeKB", 0.03),
           time: true
         });
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(3),
+      verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(3),
         "GET", CONTENT_TYPE_SJS + "?fmt=json", {
           status: 200,
           statusText: "OK",
@@ -51,7 +52,7 @@ function test() {
           size: L10N.getFormatStrWithNumbers("networkMenu.sizeKB", 0.03),
           time: true
         });
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(4),
+      verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(4),
         "GET", CONTENT_TYPE_SJS + "?fmt=bogus", {
           status: 404,
           statusText: "Not Found",
@@ -60,7 +61,7 @@ function test() {
           size: L10N.getFormatStrWithNumbers("networkMenu.sizeKB", 0.02),
           time: true
         });
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(5),
+      verifyRequestItemTarget(win, RequestsMenu.getItemAtIndex(5),
         "GET", TEST_IMAGE, {
           fuzzyUrl: true,
           status: 200,

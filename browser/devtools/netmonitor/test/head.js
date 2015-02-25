@@ -102,10 +102,19 @@ function addTab(aUrl, aWindow) {
 function removeTab(aTab, aWindow) {
   info("Removing tab.");
 
+  let deferred = promise.defer();
   let targetWindow = aWindow || window;
   let targetBrowser = targetWindow.gBrowser;
+  let tabContainer = targetBrowser.tabContainer;
+
+  tabContainer.addEventListener("TabClose", function onClose(aEvent) {
+    tabContainer.removeEventListener("TabClose", onClose, false);
+    info("Tab removed and finished closing.");
+    deferred.resolve();
+  }, false);
 
   targetBrowser.removeTab(aTab);
+  return deferred.promise;
 }
 
 function waitForNavigation(aTarget) {
@@ -179,15 +188,15 @@ function restartNetMonitor(aMonitor, aNewUrl) {
 }
 
 function teardown(aMonitor) {
-  info("Destroying the specified network monitor.");
+  return Task.spawn(function*() {
+    info("Destroying the specified network monitor.");
 
-  let deferred = promise.defer();
-  let tab = aMonitor.target.tab;
+    let deferred = promise.defer();
+    let tab = aMonitor.target.tab;
 
-  aMonitor.once("destroyed", () => executeSoon(deferred.resolve));
-  removeTab(tab);
-
-  return deferred.promise;
+    yield aMonitor._toolbox.destroy();
+    yield removeTab(tab);
+  });
 }
 
 function waitForNetworkEvents(aMonitor, aGetRequests, aPostRequests = 0) {
@@ -195,6 +204,7 @@ function waitForNetworkEvents(aMonitor, aGetRequests, aPostRequests = 0) {
 
   let panel = aMonitor.panelWin;
   let events = panel.EVENTS;
+  let models = panel.RequestCollection;
 
   let progress = {};
   let genericEvents = 0;
@@ -239,14 +249,15 @@ function waitForNetworkEvents(aMonitor, aGetRequests, aPostRequests = 0) {
     maybeResolve(event, actor);
   }
 
-  function maybeResolve(event, [actor, url]) {
+  function maybeResolve(event, actor) {
     info("> Network events progress: " +
       genericEvents + "/" + ((aGetRequests + aPostRequests) * 13) + ", " +
       postEvents + "/" + (aPostRequests * 2) + ", " +
       "got " + event + " for " + actor);
 
+    let url = models.get(actor).url;
     updateProgressForURL(url, event);
-    info("> Current state: " + JSON.stringify(progress, null, 2));
+    // info("> Current state: " + JSON.stringify(progress, null, 2));
 
     // There are 15 updates which need to be fired for a request to be
     // considered finished. The "requestPostData" packet isn't fired for
@@ -255,6 +266,7 @@ function waitForNetworkEvents(aMonitor, aGetRequests, aPostRequests = 0) {
         postEvents == aPostRequests * 2) {
 
       awaitedEventsToListeners.forEach(([e, l]) => panel.off(events[e], l));
+      info(`Got ${aGetRequests + aPostRequests} full requests`);
       executeSoon(deferred.resolve);
     }
   }
@@ -263,35 +275,44 @@ function waitForNetworkEvents(aMonitor, aGetRequests, aPostRequests = 0) {
   return deferred.promise;
 }
 
-function verifyRequestItemTarget(aRequestItem, aMethod, aUrl, aData = {}) {
-  info("> Verifying: " + aMethod + " " + aUrl + " " + aData.toSource());
-  // This bloats log sizes significantly in automation (bug 992485)
-  //info("> Request: " + aRequestItem.attachment.toSource());
+function verifyRequestItemTarget(win, aRequestModel, aMethod, aUrl, aData = {}) {
+  info(`> Verifying ${aRequestModel.id}: ${aMethod} ${aUrl} ${aData.toSource()}`);
 
-  let requestsMenu = aRequestItem.ownerView;
-  let widgetIndex = requestsMenu.indexOfItem(aRequestItem);
-  let visibleIndex = requestsMenu.visibleItems.indexOf(aRequestItem);
+  let requestsMenu = win.NetMonitorView.RequestsMenu;
+  let $reqs = win.document.querySelectorAll("#requests-menu-contents .request");
+  let visibleIndex = -1;
+  let target;
 
-  info("Widget index of item: " + widgetIndex);
+  info("COUNT " + $reqs.length);
+  for (let i = 0; i < $reqs.length; i++) {
+    let el = $reqs[i];
+    if (!el.hidden) {
+      visibleIndex++;
+    }
+    info(el.getAttribute("data-request-id") + " vs " + aRequestModel.id);
+    if (el.getAttribute("data-request-id") === aRequestModel.id) {
+      target = el;
+      break;
+    }
+  }
+
   info("Visible index of item: " + visibleIndex);
 
-  let { fuzzyUrl, status, statusText, type, fullMimeType,
-        transferred, size, time, fromCache } = aData;
-  let { attachment, target } = aRequestItem
+  let { fromCache, fuzzyUrl, status, statusText, type, fullMimeType, transferred, size, time } = aData;
 
   let uri = Services.io.newURI(aUrl, null, null).QueryInterface(Ci.nsIURL);
   let unicodeUrl = NetworkHelper.convertToUnicode(unescape(aUrl));
   let name = NetworkHelper.convertToUnicode(unescape(uri.fileName || uri.filePath || "/"));
   let query = NetworkHelper.convertToUnicode(unescape(uri.query));
   let hostPort = uri.hostPort;
-  let remoteAddress = attachment.remoteAddress;
+  let remoteAddress = aRequestModel.remoteAddress;
 
   if (fuzzyUrl) {
-    ok(attachment.method.startsWith(aMethod), "The attached method is correct.");
-    ok(attachment.url.startsWith(aUrl), "The attached url is correct.");
+    ok(aRequestModel.method.startsWith(aMethod), "The attached method is incorrect.");
+    ok(aRequestModel.url.startsWith(aUrl), "The attached url is incorrect.");
   } else {
-    is(attachment.method, aMethod, "The attached method is correct.");
-    is(attachment.url, aUrl, "The attached url is correct.");
+    is(aRequestModel.method, aMethod, "The attached method is incorrect.");
+    is(aRequestModel.url, aUrl, "The attached url is incorrect.");
   }
 
   is(target.querySelector(".requests-menu-method").getAttribute("value"),
@@ -360,17 +381,17 @@ function verifyRequestItemTarget(aRequestItem, aMethod, aUrl, aData = {}) {
     ok(~~(tooltip.match(/[0-9]+/)) >= 0, "The tooltip time is correct.");
   }
 
-  if (visibleIndex != -1) {
+  if (!target.hidden) {
     if (visibleIndex % 2 == 0) {
-      ok(aRequestItem.target.hasAttribute("even"),
-        aRequestItem.value + " should have 'even' attribute.");
-      ok(!aRequestItem.target.hasAttribute("odd"),
-        aRequestItem.value + " shouldn't have 'odd' attribute.");
+      ok(target.hasAttribute("even"),
+        "Unexpected 'even' attribute for " + aRequestModel.value);
+      ok(!target.hasAttribute("odd"),
+        "Unexpected 'odd' attribute for " + aRequestModel.value);
     } else {
-      ok(!aRequestItem.target.hasAttribute("even"),
-        aRequestItem.value + " shouldn't have 'even' attribute.");
-      ok(aRequestItem.target.hasAttribute("odd"),
-        aRequestItem.value + " should have 'odd' attribute.");
+      ok(!target.hasAttribute("even"),
+        "Unexpected 'even' attribute for " + aRequestModel.value);
+      ok(target.hasAttribute("odd"),
+        "Unexpected 'odd' attribute for " + aRequestModel.value);
     }
   }
 }
@@ -388,7 +409,15 @@ function verifyRequestItemTarget(aRequestItem, aMethod, aUrl, aData = {}) {
  */
 function waitFor (subject, eventName) {
   let deferred = promise.defer();
-  subject.once(eventName, deferred.resolve);
+  info(`Waiting for ${eventName} on ${subject}...`);
+  if (subject.once) {
+    subject.once(eventName, deferred.resolve);
+  } else {
+    subject.on(eventName, function handler () {
+      subject.off(eventName, handler);
+      deferred.resolve(arguments);
+    });
+  }
   return deferred.promise;
 }
 

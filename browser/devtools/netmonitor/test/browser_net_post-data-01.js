@@ -16,7 +16,7 @@ function test() {
     NetworkDetails._params.lazyEmpty = false;
 
     waitForNetworkEvents(aMonitor, 0, 2).then(() => {
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(0),
+      verifyRequestItemTarget(aMonitor.panelWin, RequestsMenu.getItemAtIndex(0),
         "POST", SIMPLE_SJS + "?foo=bar&baz=42&type=urlencoded", {
           status: 200,
           statusText: "Och Aye",
@@ -25,7 +25,7 @@ function test() {
           size: L10N.getFormatStrWithNumbers("networkMenu.sizeKB", 0.01),
           time: true
         });
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(1),
+      verifyRequestItemTarget(aMonitor.panelWin, RequestsMenu.getItemAtIndex(1),
         "POST", SIMPLE_SJS + "?foo=bar&baz=42&type=multipart", {
           status: 200,
           statusText: "Och Aye",

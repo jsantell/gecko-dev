@@ -5,7 +5,7 @@
  * Tests whether copying a request item's parameters works.
  */
 
-function test() {
+spawnTest(function*() {
   initNetMonitor(PARAMS_URL).then(([aTab, aDebuggee, aMonitor]) => {
     info("Starting test... ");
 
@@ -88,5 +88,5 @@ function test() {
 
     aDebuggee.performRequests();
   });
-}
+});
 

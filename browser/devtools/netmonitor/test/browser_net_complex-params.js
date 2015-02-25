@@ -24,6 +24,7 @@ function test() {
       EventUtils.sendMouseEvent({ type: "mousedown" },
         document.querySelectorAll("#details-pane tab")[2]);
 
+      RequestsMenu.selectedIndex = 0;
       yield waitFor(aMonitor.panelWin, EVENTS.REQUEST_POST_PARAMS_DISPLAYED);
       yield testParamsTab1('a', '""', '{ "foo": "bar" }', '""');
 

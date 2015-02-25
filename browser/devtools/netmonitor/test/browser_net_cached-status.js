@@ -102,7 +102,7 @@ let test = Task.async(function*() {
     let item = RequestsMenu.getItemAtIndex(index);
 
     info("Verifying request #" + index);
-    yield verifyRequestItemTarget(item, request.method, request.uri, request.details);
+    yield verifyRequestItemTarget(monitor.panelWin, item, request.method, request.uri, request.details);
 
     index++;
   }
