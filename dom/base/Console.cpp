@@ -783,6 +783,19 @@ Console::TimeEnd(JSContext* aCx, const JS::Handle<JS::Value> aTime)
 }
 
 void
+Console::TimeStamp(JSContext* aCx, const JS::Handle<JS::Value> aData)
+{
+  Sequence<JS::Value> data;
+  SequenceRooter<JS::Value> rooter(aCx, &data);
+
+  if (!aData.isUndefined()) {
+    data.AppendElement(aData);
+  }
+
+  Method(aCx, MethodTimeStamp, NS_LITERAL_STRING("timeStamp"), data);
+}
+
+void
 Console::Profile(JSContext* aCx, const Sequence<JS::Value>& aData)
 {
   ProfileMethod(aCx, NS_LITERAL_STRING("profile"), aData);
@@ -953,6 +966,24 @@ public:
   }
 };
 
+class TimestampTimelineMarker : public TimelineMarker
+{
+public:
+  TimestampTimelineMarker(nsDocShell* aDocShell,
+                          TracingMetadata aMetaData,
+                          const nsAString& aCause)
+    : TimelineMarker(aDocShell, "Timestamp", aMetaData, aCause)
+  {
+  }
+
+  virtual void AddDetails(mozilla::dom::ProfileTimelineMarker& aMarker) MOZ_OVERRIDE
+  {
+    if (GetMetaData() == TRACING_INTERVAL_START) {
+      aMarker.mCauseName.Construct(GetCause());
+    }
+  }
+};
+
 // Queue a call to a console method. See the CALL_DELAY constant.
 void
 Console::Method(JSContext* aCx, MethodName aMethodName,
@@ -1028,7 +1059,7 @@ Console::Method(JSContext* aCx, MethodName aMethodName,
   }
 
   // Monotonic timer for 'time' and 'timeEnd'
-  if ((aMethodName == MethodTime || aMethodName == MethodTimeEnd)) {
+  if ((aMethodName == MethodTime || aMethodName == MethodTimeEnd || aMethodName == MethodTimeStamp)) {
     if (mWindow) {
       nsGlobalWindow *win = static_cast<nsGlobalWindow*>(mWindow.get());
       MOZ_ASSERT(win);
@@ -1047,7 +1078,25 @@ Console::Method(JSContext* aCx, MethodName aMethodName,
         docShell->GetRecordProfileTimelineMarkers(&isTimelineRecording);
       }
 
-      if (isTimelineRecording && aData.Length() == 1) {
+      // 'timeStamp' recordings do not need an argument
+      if (isTimelineRecording && aMethodName == MethodTimeStamp) {
+        if (aData.Length() == 0) {
+          docShell->AddProfileTimelineMarker("Timestamp", TRACING_INTERVAL_START);
+        } else {
+          JS::Rooted<JS::Value> value(aCx, aData[0]);
+          JS::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, value));
+          if (jsString) {
+            nsAutoJSString key;
+            if (key.init(aCx, jsString)) {
+              mozilla::UniquePtr<TimelineMarker> marker =
+                MakeUnique<TimestampTimelineMarker>(docShell, TRACING_INTERVAL_START, key);
+              docShell->AddProfileTimelineMarker(marker);
+            }
+          }
+        }
+        docShell->AddProfileTimelineMarker("Timestamp", TRACING_INTERVAL_END);
+      }
+      else if (isTimelineRecording && aData.Length() == 1) {
         JS::Rooted<JS::Value> value(aCx, aData[0]);
         JS::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, value));
         if (jsString) {
