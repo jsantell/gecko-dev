@@ -503,7 +503,12 @@
 .waterfall-marker-bullet.highlight-red {
   background-color: var(--theme-highlight-red);
 }
-
+#performance-filter-menupopup > menuitem.content-color3:before,
+.marker-details-bullet.content-color3,
+.waterfall-marker-bar.content-color3,
+.waterfall-marker-bullet.content-color3 {
+  background-color: var(--theme-content-color3);
+}
 
 #waterfall-details > * {
   padding-top: 3px;
