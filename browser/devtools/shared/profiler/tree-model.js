@@ -4,13 +4,18 @@
 "use strict";
 
 const {Cc, Ci, Cu, Cr} = require("chrome");
+const {extend} = require("sdk/util/object");
 
 loader.lazyRequireGetter(this, "Services");
 loader.lazyRequireGetter(this, "L10N",
   "devtools/shared/profiler/global", true);
 loader.lazyRequireGetter(this, "CATEGORY_MAPPINGS",
   "devtools/shared/profiler/global", true);
+loader.lazyRequireGetter(this, "CATEGORIES",
+  "devtools/shared/profiler/global", true);
 loader.lazyRequireGetter(this, "CATEGORY_JIT",
+  "devtools/shared/profiler/global", true);
+loader.lazyRequireGetter(this, "CATEGORY_OTHER",
   "devtools/shared/profiler/global", true);
 
 const CHROME_SCHEMES = ["chrome://", "resource://"];
@@ -91,7 +96,7 @@ ThreadNode.prototype = {
     // should be taken into consideration.
     if (options.contentOnly) {
       // The (root) node is not considered a content function, it'll be removed.
-      sampleFrames = sampleFrames.filter(isContent);
+      sampleFrames = filterPlatformData(sampleFrames);
     } else {
       // Remove the (root) node manually.
       sampleFrames = sampleFrames.slice(1);
@@ -142,8 +147,11 @@ ThreadNode.prototype = {
  *        The category type of this function call ("js", "graphics" etc.).
  * @param number allocations
  *        The number of memory allocations performed in this frame.
+ * @param boolean generalize
+ *        Whether or not this is a platform node that should appear as a
+ *        generalized category or not.
  */
-function FrameNode({ location, line, column, category, allocations }) {
+function FrameNode({ location, line, column, category, allocations, generalize }) {
   this.location = location;
   this.line = line;
   this.column = column;
@@ -153,6 +161,7 @@ function FrameNode({ location, line, column, category, allocations }) {
   this.samples = 0;
   this.duration = 0;
   this.calls = {};
+  this.generalize = generalize;
 }
 
 FrameNode.prototype = {
@@ -180,8 +189,12 @@ FrameNode.prototype = {
     if (!frame) {
       return;
     }
-    let location = frame.location;
-    let child = _store[location] || (_store[location] = new FrameNode(frame));
+    // If we are only displaying content, then platform data will have
+    // a `generalize` property. Group by category (GC, Graphics, etc.)
+    // to group together frames so they're displayed only once, since we don't
+    // need the location anyway.
+    let key = frame.generalize ? frame.category : frame.location;
+    let child = _store[key] || (_store[key] = new FrameNode(frame));
     child.sampleTimes.push({ start: time, end: time + duration });
     child.samples++;
     child.duration += duration;
@@ -239,7 +252,8 @@ FrameNode.prototype = {
       line: line,
       column: column,
       categoryData: categoryData,
-      isContent: !!isContent(this)
+      isContent: !!isContent(this),
+      generalize: this.generalize
     };
   }
 };
@@ -279,3 +293,47 @@ function nsIURL(url) {
 
 // The cache used in the `nsIURL` function.
 let gNSURLStore = new Map();
+
+/**
+ * This filters out platform data frames in a sample. With latest performance
+ * tool in Fx40, when displaying only content, we still filter out all platform data,
+ * except we generalize platform data that are leaves. We do this because of two
+ * observations:
+ *
+ * 1. The leaf is where time is _actually_ being spent, so we _need_ to show it
+ * to developers in some way to give them accurate profiling data. We decide to
+ * split the platform into various category buckets and just show time spent in
+ * each bucket.
+ *
+ * 2. The calls leading to the leaf _aren't_ where we are spending time, but
+ * _do_ give the developer context for how they got to the leaf where they _are_
+ * spending time. For non-platform hackers, the non-leaf platform frames don't
+ * give any meaningful context, and so we can safely filter them out.
+ *
+ * Example transformations:
+ * Before: PlatformA -> PlatformB -> ContentA -> ContentB
+ * After:  ContentA -> ContentB
+ *
+ * Before: PlatformA -> ContentA -> PlatformB -> PlatformC
+ * After:  ContentA -> Category(PlatformC)
+ */
+function filterPlatformData (frames) {
+  let result = [];
+  let last = frames.length - 1;
+  let frame;
+
+  for (let i = 0; i < frames.length; i++) {
+    frame = frames[i];
+    if (isContent(frame)) {
+      result.push(frame);
+    } else if (last === i) {
+      // Extend here so we're not destructively editing
+      // the original profiler data. Set generalize `true`,
+      // and ensure we have a category set by default, because that's how
+      // the generalized frame nodes are organized.
+      result.push(extend({ generalize: true, category: CATEGORY_OTHER }, frame));
+    }
+  }
+
+  return result;
+}
