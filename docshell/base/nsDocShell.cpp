@@ -2990,6 +2990,20 @@ nsDocShell::PopProfileTimelineMarkers(
     // all the embedded Layer markers to this array.
     dom::Sequence<dom::ProfileTimelineLayerRect> layerRectangles;
 
+    // Other than Paint markers, if this marker is a TRACING_EVENT,
+    // there is no corresponding END, as this marker contains only a timestamp,
+    // not a duration.
+    if (!isPaint && startPayload->GetMetaData() == TRACING_EVENT) {
+      mozilla::dom::ProfileTimelineMarker* marker =
+        profileTimelineMarkers.AppendElement();
+
+      marker->mName = NS_ConvertUTF8toUTF16(startPayload->GetName());
+      marker->mStart = startPayload->GetTime();
+      marker->mEnd = startPayload->GetTime();
+      startPayload->AddDetails(*marker);
+      continue;
+    }
+
     if (startPayload->GetMetaData() == TRACING_INTERVAL_START) {
       bool hasSeenEnd = false;
 

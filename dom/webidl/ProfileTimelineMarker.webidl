@@ -16,7 +16,7 @@ dictionary ProfileTimelineMarker {
   DOMHighResTimeStamp start = 0;
   DOMHighResTimeStamp end = 0;
   object? stack = null;
-  /* For ConsoleTime markers.  */
+  /* For ConsoleTime and Timestamp markers.  */
   DOMString causeName;
   object? endStack = null;
   /* For DOMEvent markers.  */
