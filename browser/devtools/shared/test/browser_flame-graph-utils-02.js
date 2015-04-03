@@ -3,7 +3,7 @@
 
 // Tests consecutive duplicate frames are removed from the flame graph data.
 
-let {FlameGraphUtils} = Cu.import("resource:///modules/devtools/FlameGraph.jsm", {});
+let {FlameGraphUtils} = devtools.require("devtools/shared/widgets/FlameGraph");
 
 add_task(function*() {
   yield promiseTab("about:blank");
@@ -73,7 +73,7 @@ let EXPECTED_OUTPUT = [{
     x: 0,
     y: 0,
     width: 50,
-    height: 11,
+    height: 12,
     text: "A"
   }]
 }, {
@@ -83,9 +83,9 @@ let EXPECTED_OUTPUT = [{
       rawLocation: "B"
     },
     x: 0,
-    y: 11,
+    y: 12,
     width: 50,
-    height: 11,
+    height: 12,
     text: "B"
   }]
 }, {

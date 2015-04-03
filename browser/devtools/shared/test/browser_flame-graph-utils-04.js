@@ -3,7 +3,7 @@
 
 // Tests if (idle) nodes are added when necessary in the flame graph data.
 
-let {FlameGraphUtils} = Cu.import("resource:///modules/devtools/FlameGraph.jsm", {});
+let {FlameGraphUtils} = devtools.require("devtools/shared/widgets/FlameGraph");
 let {FrameNode} = devtools.require("devtools/shared/profiler/tree-model");
 
 add_task(function*() {
@@ -96,7 +96,7 @@ let EXPECTED_OUTPUT = [{
     x: 0,
     y: 0,
     width: 50,
-    height: 11,
+    height: 12,
     text: "http://A"
   }, {
     srcData: {
@@ -104,9 +104,9 @@ let EXPECTED_OUTPUT = [{
       rawLocation: "file://C"
     },
     x: 0,
-    y: 22,
+    y: 24,
     width: 50,
-    height: 11,
+    height: 12,
     text: "file://C"
   }, {
     srcData: {
@@ -116,7 +116,7 @@ let EXPECTED_OUTPUT = [{
     x: 100,
     y: 0,
     width: 50,
-    height: 11,
+    height: 12,
     text: "http://A"
   }]
 }, {
@@ -128,7 +128,7 @@ let EXPECTED_OUTPUT = [{
     x: 50,
     y: 0,
     width: 50,
-    height: 11,
+    height: 12,
     text: "\m/"
   }]
 }, {
@@ -146,9 +146,9 @@ let EXPECTED_OUTPUT = [{
       rawLocation: "https://B"
     },
     x: 0,
-    y: 11,
+    y: 12,
     width: 50,
-    height: 11,
+    height: 12,
     text: "https://B"
   }, {
     srcData: {
@@ -156,9 +156,9 @@ let EXPECTED_OUTPUT = [{
       rawLocation: "https://B"
     },
     x: 100,
-    y: 11,
+    y: 12,
     width: 50,
-    height: 11,
+    height: 12,
     text: "https://B"
   }]
 }, {
