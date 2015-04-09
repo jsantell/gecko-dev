@@ -15,7 +15,7 @@ add_task(function*() {
 function* performTest() {
   let out = FlameGraphUtils.createFlameGraphDataFromSamples(TEST_DATA, {
     flattenRecursion: true,
-    filterFrames: FrameNode.isContent,
+    filterFrames: (frames) => frames.filter(FrameNode.isContent),
     showIdleBlocks: "\m/"
   });
 

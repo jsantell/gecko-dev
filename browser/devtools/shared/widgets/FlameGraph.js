@@ -10,6 +10,7 @@ const { Task } = require("resource://gre/modules/Task.jsm");
 const { getColor } = require("devtools/shared/theme");
 const EventEmitter = require("devtools/toolkit/event-emitter");
 const FrameUtils = require("devtools/shared/profiler/frame-utils");
+const { CATEGORY_MAPPINGS, CATEGORY_OTHER } = require("devtools/shared/profiler/global");
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const GRAPH_SRC = "chrome://browser/content/devtools/graphs-frame.xhtml";
@@ -971,7 +972,7 @@ let FlameGraphUtils = {
    *          - flattenRecursion: specifies if identical consecutive frames
    *                              should be omitted from the output
    *          - filterFrames: predicate used for filtering all frames, passing
-   *                          in each frame, its index and the sample array
+   *                          in a sample's array of frames.
    *          - showIdleBlocks: adds "idle" blocks when no frames are available
    *                            using the provided localized text
    * @param array out [optional]
@@ -1012,7 +1013,7 @@ let FlameGraphUtils = {
       // filter out platform frames if only content-related function calls
       // should be taken into consideration.
       if (options.filterFrames) {
-        frames = frames.filter(options.filterFrames);
+        frames = options.filterFrames(frames);
       }
 
       // Invert the stack if preferred, reversing the frames array in place.
@@ -1029,20 +1030,26 @@ let FlameGraphUtils = {
         let { location } = frame;
         let prevFrame = prevFrames[frameIndex];
 
+        // If frame is tagged with `isMetaCategory`, use its category
+        // type to categorize the frames rather than location.
+        // Use the category name instead of the number so we can get
+        // a good string hash via `this._getStringHash()`
+        let key = frame.isMetaCategory ? this._getCategoryName(frame.category) : location;
+
         // Frames at the same location and the same depth will be reused.
         // If there is a block already created, change its width.
-        if (prevFrame && prevFrame.srcData.rawLocation == location) {
+        if (prevFrame && prevFrame.srcData.key === key) {
           prevFrame.width = (time - prevFrame.srcData.startTime);
         }
         // Otherwise, create a new block for this frame at this depth,
         // using a simple location based salt for picking a color.
         else {
-          let hash = this._getStringHash(location);
+          let hash = this._getStringHash(key);
           let color = COLOR_PALLETTE[hash % PALLETTE_SIZE];
           let bucket = buckets.get(color);
 
           bucket.push(prevFrames[frameIndex] = {
-            srcData: { startTime: prevTime, rawLocation: location },
+            srcData: { startTime: prevTime, rawLocation: location, key: key },
             x: prevTime,
             y: frameIndex * FLAME_GRAPH_BLOCK_HEIGHT,
             width: time - prevTime,
@@ -1133,6 +1140,10 @@ let FlameGraphUtils = {
       return frame.location;
     }
 
+    if (frame.isMetaCategory) {
+      return this._getCategoryName(frame.category);
+    }
+
     let { functionName, fileName, line } = FrameUtils.parseLocation(frame);
     let label = functionName;
 
@@ -1141,6 +1152,14 @@ let FlameGraphUtils = {
     }
 
     return label;
+  },
+
+  /**
+   * Takes the category number of a frame and returns a label
+   * for that category, like "Graphics" or "Gecko".
+   */
+  _getCategoryName: function (category) {
+    return (CATEGORY_MAPPINGS[category] || CATEGORY_MAPPINGS[CATEGORY_OTHER]).label || "";
   }
 };
 

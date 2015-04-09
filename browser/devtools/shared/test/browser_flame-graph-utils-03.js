@@ -14,7 +14,7 @@ add_task(function*() {
 
 function* performTest() {
   let out = FlameGraphUtils.createFlameGraphDataFromSamples(TEST_DATA, {
-    filterFrames: FrameNode.isContent
+    filterFrames: (frames) => frames.filter(FrameNode.isContent)
   });
 
   ok(out, "Some data was outputted properly");

@@ -51,6 +51,8 @@ devtools.lazyRequireGetter(this, "FlameGraphUtils",
   "devtools/shared/widgets/FlameGraph", true);
 devtools.lazyRequireGetter(this, "FlameGraph",
   "devtools/shared/widgets/FlameGraph", true);
+devtools.lazyRequireGetter(this, "frameUtils",
+  "devtools/shared/profiler/frame-utils");
 
 devtools.lazyImporter(this, "CanvasGraphUtils",
   "resource:///modules/devtools/Graphs.jsm");
