@@ -129,7 +129,6 @@ let openAnimationInspector = Task.async(function*() {
 
   info("Opening the toolbox with the inspector selected");
   let toolbox = yield gDevTools.showToolbox(target, "inspector");
-  yield waitForToolboxFrameFocus(toolbox);
 
   info("Switching to the animationinspector");
   let inspector = toolbox.getPanel("inspector");
@@ -137,6 +136,10 @@ let openAnimationInspector = Task.async(function*() {
     inspector.once("inspector-updated"),
     inspector.sidebar.once("animationinspector-ready")
   ];
+
+  info("Waiting for toolbox focus");
+  yield waitForToolboxFrameFocus(toolbox);
+
   inspector.sidebar.select("animationinspector");
 
   info("Waiting for the inspector and sidebar to be ready");
