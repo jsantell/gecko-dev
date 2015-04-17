@@ -144,7 +144,7 @@ PerformanceActorsConnection.prototype = {
    */
   destroy: Task.async(function*() {
     if (this._connecting && !this._connected) {
-      console.warn("Attempting to destroy SharedPerformanceActorsConnection before initialization completion. If testing, ensure `gDevTools.testing` is set.");
+      yield this._connecting.promise;
     }
 
     yield this._unregisterListeners();
@@ -152,6 +152,7 @@ PerformanceActorsConnection.prototype = {
 
     this._memory = this._timeline = this._profiler = this._target = this._client = null;
     this._connected = false;
+    this._connecting = null;
   }),
 
   /**
