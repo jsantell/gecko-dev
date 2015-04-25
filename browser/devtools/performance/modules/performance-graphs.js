@@ -19,7 +19,12 @@ loader.lazyRequireGetter(this, "ProfilerGlobal",
   "devtools/shared/profiler/global");
 loader.lazyRequireGetter(this, "TimelineGlobal",
   "devtools/shared/timeline/global");
+devtools.lazyRequireGetter(this, "MarkersOverview",
+  "devtools/shared/timeline/markers-overview", true);
 
+/**
+ * For line graphs
+ */
 const HEIGHT = 35; // px
 const STROKE_WIDTH = 1; // px
 const DAMPEN_VALUES = 0.95;
@@ -28,6 +33,13 @@ const SELECTION_LINE_COLOR = "#555";
 const SELECTION_BACKGROUND_COLOR_NAME = "highlight-blue";
 const FRAMERATE_GRAPH_COLOR_NAME = "highlight-green";
 const MEMORY_GRAPH_COLOR_NAME = "highlight-blue";
+
+/**
+ * For markers overview
+ */
+const MARKERS_GRAPH_HEADER_HEIGHT = 14; // px
+const MARKERS_GRAPH_ROW_HEIGHT = 10; // px
+const MARKERS_GROUP_VERTICAL_PADDING = 4; // px
 
 /**
  * A base class for performance graphs to inherit from.
@@ -91,7 +103,8 @@ function FramerateGraph(parent) {
 }
 
 FramerateGraph.prototype = Heritage.extend(PerformanceGraph.prototype, {
-  mainColor: FRAMERATE_GRAPH_COLOR_NAME
+  mainColor: FRAMERATE_GRAPH_COLOR_NAME,
+  setData: PerformanceGraph.prototype.setDataFromTimestamps
 });
 
 exports.FramerateGraph = FramerateGraph;
@@ -111,3 +124,191 @@ MemoryGraph.prototype = Heritage.extend(PerformanceGraph.prototype, {
 });
 
 exports.MemoryGraph = MemoryGraph;
+
+function TimelineOverview(parent, blueprint) {
+  MarkersOverview.call(this, parent, blueprint);
+}
+
+TimelineOverview.prototype = Heritage.extend(MarkersOverview.prototype, {
+  headerHeight: MARKERS_GRAPH_HEADER_HEIGHT,
+  rowHeight: MARKERS_GRAPH_ROW_HEIGHT,
+  groupPadding: MARKERS_GROUP_VERTICAL_PADDING,
+});
+
+const GRAPH_DEFINITIONS = {
+  memory: {
+    constructor: MemoryGraph,
+    selector: "#memory-overview",
+  },
+  framerate: {
+    constructor: FramerateGraph,
+    selector: "#time-framerate",
+  },
+  markers: {
+    constructor: TimelineOverview,
+    selector: "#markers-overview",
+    needsBlueprints: true,
+    primaryLink: true
+  }
+};
+
+/**
+ * A controller for orchestrating the performance's tool overview graphs. Constructs,
+ * syncs, toggles displays and defines the memory, framerate and markers view.
+ *
+ * @param {object} definition
+ * @param {DOMElement} root
+ * @param {function} getBlueprint
+ * @param {function} getTheme
+ */
+function GraphsController ({ definition, root, getBlueprint, getTheme }) {
+  this._graphs = {};
+  this._definition = definition || GRAPH_DEFINITIONS;
+  this._root = root;
+  this._getBlueprint = getBlueprint;
+  this._getTheme = getTheme;
+  this._primaryLink = Object.keys(definition).filter(def => def.primaryLink)[0];
+  this.$ = root.ownerDocument.querySelector.bind(root.ownerDocument);
+
+  EventEmitter.decorate(this);
+  this._onSelecting = this._onSelecting.bind(this);
+}
+
+GraphsController.prototype = {
+
+  /**
+   * Returns the corresponding graph by `graphName`.
+   */
+  get: function (graphName) {
+    return this._graphs[graphName];
+  },
+
+  /**
+   * Destroys the underlying graphs.
+   */
+  destroy: Task.async(function *() {
+    let primary = this.getPrimaryLink();
+
+    if (primary) {
+      primary.off("selecting", this._onSelecting);
+    }
+
+    for (let graph in this._graphs) {
+      yield this._graphs[graph].destroy();
+    }
+    this.$ = this._graphs = this._root = null;
+  }),
+
+  /**
+   * Applies the theme to the underlying graphs. Optionally takes
+   * a `redraw` boolean in the options to force redraw.
+   */
+  setTheme: function (options={}) {
+    let theme = options.theme || this._getTheme();
+    for (let graph in this._graphs) {
+      this._graphs[graph].setTheme(theme);
+      this._graphs[graph].refresh({ force: options.redraw });
+    }
+  },
+
+  /**
+   * Sets up the graph, if needed. Returns a promise resolving
+   * to a boolean indicating whether or not the graph is enabled, and
+   * sets it up if it needs.
+   */
+  isAvailable: Task.async(function *(graphName) {
+    if (this._disabled.has(graphName)) {
+      return false;
+    }
+
+    if (this.get(graphName)) {
+      yield this.get(graphName).ready();
+      return true;
+    }
+
+    yield this._construct(graphName);
+    return true;
+  }),
+
+  enable: function (graphName, isEnabled) {
+    let el = this.$(this._definition[graphName].selector);
+    if (isEnabled) {
+      this._disabled.delete(graphName);
+      el.hidden = false;
+    } else {
+      this._disabled.add(graphName);
+      el.hidden = true;
+    }
+  },
+
+  /**
+   * Disables all graphs controller by the GraphsController, and
+   * also hides the root element. This is a one way switch, and used
+   * when older platforms do not have any timeline data.
+   */
+  disableAll: function () {
+    this._root.hidden = true;
+  },
+
+  /**
+   * Sets a mapped selection on the graph that is the main controller
+   * for keeping the graphs' selections in sync.
+   */
+  setMappedSelection: function (selection, { mapStart, mapEnd }) {
+    this._getPrimaryLink().setMappedSelection(select, { mapStart, mapEnd });
+  },
+
+  /**
+   * Drops the selection.
+   */
+  dropSelection: function () {
+    this._getPrimaryLink().dropSelection();
+  },
+
+  /**
+   * Makes sure the selection is enabled or disabled in all the graphs.
+   */
+  selectionEnabled: Task.async(function *(enabled) {
+    for (let graph in this._graphs) {
+      if (yield this.isAvailable(graph)) {
+        this.get(graph).selectionEnabled = enabled;
+      }
+    }
+  }),
+
+  /**
+   * Creates the graph `graphName` and initializes it.
+   */
+  _construct: Task.async(function *(graphName) {
+    let def = this._definition[graphName];
+    let el = this.$(def.selector);
+    let blueprint = def.needsBlueprints ? this._getBlueprint() : void 0;
+    let graph = this._graphs[graphName] = new def.constructor(el, blueprint);
+
+    if (def.primaryLink) {
+      graph.on("selecting", this._onSelecting);
+    } else {
+      CanvasGraphUtils.linkAnimation(this._getPrimaryLink(), graph);
+      CanvasGraphUtils.linkSelection(this._getPrimaryLink(), graph);
+    }
+
+    yield graph.ready();
+
+    this.setTheme();
+  }),
+
+  /**
+   * Returns the main graph for this collection, that all graphs
+   * are bound to for syncing and selection.
+   */
+  _getPrimaryLink: function () {
+    return this.get(this._primaryLink);
+  },
+
+  /**
+   * Emitted when a selection occurs.
+   */
+  _onSelecting: function () {
+    this.emit("selecting");
+  },
+});

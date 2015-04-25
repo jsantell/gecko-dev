@@ -11,22 +11,27 @@ const OVERVIEW_UPDATE_INTERVAL = 200; // ms
 const FRAMERATE_GRAPH_LOW_RES_INTERVAL = 100; // ms
 const FRAMERATE_GRAPH_HIGH_RES_INTERVAL = 16; // ms
 
-const MARKERS_GRAPH_HEADER_HEIGHT = 14; // px
-const MARKERS_GRAPH_ROW_HEIGHT = 10; // px
-const MARKERS_GROUP_VERTICAL_PADDING = 4; // px
 
 /**
  * View handler for the overview panel's time view, displaying
  * framerate, markers and memory over time.
  */
 let OverviewView = {
+
   /**
    * Sets up the view with event binding.
    */
   initialize: function () {
+    this.graphs = new GraphsController({
+      root: $("#overview-pane"),
+      getBlueprint: () => PerformanceController.getTimelineBlueprint(),
+      getTheme: () => PerformanceController.getTheme(),
+    });
+
     if (gFront.getMocksInUse().timeline) {
       this.disable();
     }
+
     this._onRecordingWillStart = this._onRecordingWillStart.bind(this);
     this._onRecordingStarted = this._onRecordingStarted.bind(this);
     this._onRecordingWillStop = this._onRecordingWillStop.bind(this);
@@ -39,9 +44,6 @@ let OverviewView = {
 
     // Toggle the initial visibility of memory and framerate graph containers
     // based off of prefs.
-    $("#memory-overview").hidden = !PerformanceController.getOption("enable-memory");
-    $("#time-framerate").hidden = !PerformanceController.getOption("enable-framerate");
-
     PerformanceController.on(EVENTS.PREF_CHANGED, this._onPrefChanged);
     PerformanceController.on(EVENTS.THEME_CHANGED, this._onThemeChanged);
     PerformanceController.on(EVENTS.RECORDING_WILL_START, this._onRecordingWillStart);
@@ -52,22 +54,13 @@ let OverviewView = {
     PerformanceController.on(EVENTS.CONSOLE_RECORDING_STARTED, this._onRecordingStarted);
     PerformanceController.on(EVENTS.CONSOLE_RECORDING_STOPPED, this._onRecordingStopped);
     PerformanceController.on(EVENTS.CONSOLE_RECORDING_WILL_STOP, this._onRecordingWillStop);
+    this.graphs.on("selecting", this._onGraphSelecting);
   },
 
   /**
    * Unbinds events.
    */
   destroy: Task.async(function*() {
-    if (this.markersOverview) {
-      yield this.markersOverview.destroy();
-    }
-    if (this.memoryOverview) {
-      yield this.memoryOverview.destroy();
-    }
-    if (this.framerateGraph) {
-      yield this.framerateGraph.destroy();
-    }
-
     PerformanceController.off(EVENTS.PREF_CHANGED, this._onPrefChanged);
     PerformanceController.off(EVENTS.THEME_CHANGED, this._onThemeChanged);
     PerformanceController.off(EVENTS.RECORDING_WILL_START, this._onRecordingWillStart);
@@ -78,6 +71,8 @@ let OverviewView = {
     PerformanceController.off(EVENTS.CONSOLE_RECORDING_STARTED, this._onRecordingStarted);
     PerformanceController.off(EVENTS.CONSOLE_RECORDING_STOPPED, this._onRecordingStopped);
     PerformanceController.off(EVENTS.CONSOLE_RECORDING_WILL_STOP, this._onRecordingWillStop);
+    this.graphs.off("selecting", this._onGraphSelecting);
+    yield this.graphs.destroy();
   }),
 
   /**
@@ -87,7 +82,7 @@ let OverviewView = {
    */
   disable: function () {
     this._disabled = true;
-    $("#overview-pane").hidden = true;
+    this.graphs.disableAll();
   },
 
   /**
@@ -97,28 +92,6 @@ let OverviewView = {
    */
   isDisabled: function () {
     return this._disabled;
-  },
-
-  /**
-   * Sets the theme for the markers overview and memory overview.
-   */
-  setTheme: function (options={}) {
-    let theme = options.theme || PerformanceController.getTheme();
-
-    if (this.framerateGraph) {
-      this.framerateGraph.setTheme(theme);
-      this.framerateGraph.refresh({ force: options.redraw });
-    }
-
-    if (this.markersOverview) {
-      this.markersOverview.setTheme(theme);
-      this.markersOverview.refresh({ force: options.redraw });
-    }
-
-    if (this.memoryOverview) {
-      this.memoryOverview.setTheme(theme);
-      this.memoryOverview.refresh({ force: options.redraw });
-    }
   },
 
   /**
@@ -139,7 +112,7 @@ let OverviewView = {
     let mapEnd = () => recording.getDuration();
     let selection = { start: interval.startTime, end: interval.endTime };
     this._stopSelectionChangeEventPropagation = options.stopPropagation;
-    this.markersOverview.setMappedSelection(selection, { mapStart, mapEnd });
+    this.graphs.setMappedSelection(selection, { mapStart, mapEnd });
     this._stopSelectionChangeEventPropagation = false;
   },
 
@@ -162,76 +135,6 @@ let OverviewView = {
     let selection = this.markersOverview.getMappedSelection({ mapStart, mapEnd });
     return { startTime: selection.min, endTime: selection.max };
   },
-
-  /**
-   * Sets up the markers overivew graph, if needed.
-   *
-   * @return object
-   *         A promise resolved to `true` when the graph was initialized.
-   */
-  _markersGraphAvailable: Task.async(function *() {
-    if (this.markersOverview) {
-      yield this.markersOverview.ready();
-      return true;
-    }
-    let blueprint = PerformanceController.getTimelineBlueprint();
-    this.markersOverview = new MarkersOverview($("#markers-overview"), blueprint);
-    this.markersOverview.headerHeight = MARKERS_GRAPH_HEADER_HEIGHT;
-    this.markersOverview.rowHeight = MARKERS_GRAPH_ROW_HEIGHT;
-    this.markersOverview.groupPadding = MARKERS_GROUP_VERTICAL_PADDING;
-    this.markersOverview.on("selecting", this._onGraphSelecting);
-    yield this.markersOverview.ready();
-    this.setTheme();
-    return true;
-  }),
-
-  /**
-   * Sets up the memory overview graph, if allowed and needed.
-   *
-   * @return object
-   *         A promise resolved to `true` if the graph was initialized and is
-   *         ready to use, `false` if the graph is disabled.
-   */
-  _memoryGraphAvailable: Task.async(function *() {
-    if (!PerformanceController.getOption("enable-memory")) {
-      return false;
-    }
-    if (this.memoryOverview) {
-      yield this.memoryOverview.ready();
-      return true;
-    }
-    this.memoryOverview = new MemoryGraph($("#memory-overview"));
-    yield this.memoryOverview.ready();
-    this.setTheme();
-
-    CanvasGraphUtils.linkAnimation(this.markersOverview, this.memoryOverview);
-    CanvasGraphUtils.linkSelection(this.markersOverview, this.memoryOverview);
-    return true;
-  }),
-
-  /**
-   * Sets up the framerate graph, if allowed and needed.
-   *
-   * @return object
-   *         A promise resolved to `true` if the graph was initialized and is
-   *         ready to use, `false` if the graph is disabled.
-   */
-  _framerateGraphAvailable: Task.async(function *() {
-    if (!PerformanceController.getOption("enable-framerate")) {
-      return false;
-    }
-    if (this.framerateGraph) {
-      yield this.framerateGraph.ready();
-      return true;
-    }
-    this.framerateGraph = new FramerateGraph($("#time-framerate"));
-    yield this.framerateGraph.ready();
-    this.setTheme();
-
-    CanvasGraphUtils.linkAnimation(this.markersOverview, this.framerateGraph);
-    CanvasGraphUtils.linkSelection(this.markersOverview, this.framerateGraph);
-    return true;
-  }),
 
   /**
    * Method for handling all the set up for rendering the overview graphs.
@@ -316,7 +219,7 @@ let OverviewView = {
   _onRecordingWillStart: Task.async(function* () {
     this._onRecordingStateChange();
     yield this._checkSelection();
-    this.markersOverview.dropSelection();
+    this.graphs.dropSelection();
   }),
 
   /**
@@ -358,12 +261,14 @@ let OverviewView = {
       return;
     }
     this._onRecordingStateChange();
+    this._setGraphVisibilityFromRecordingFeatures(recording);
+
     // If this recording is complete, render the high res graph
     if (!recording.isRecording()) {
       yield this.render(FRAMERATE_GRAPH_HIGH_RES_INTERVAL);
     }
     yield this._checkSelection(recording);
-    this.markersOverview.dropSelection();
+    this.graphs.dropSelection();
   }),
 
   /**
@@ -407,17 +312,8 @@ let OverviewView = {
    * based on whether a recording currently exists and is not in progress.
    */
   _checkSelection: Task.async(function* (recording) {
-    let selectionEnabled = recording ? !recording.isRecording() : false;
-
-    if (yield this._markersGraphAvailable()) {
-      this.markersOverview.selectionEnabled = selectionEnabled;
-    }
-    if (yield this._memoryGraphAvailable()) {
-      this.memoryOverview.selectionEnabled = selectionEnabled;
-    }
-    if (yield this._framerateGraphAvailable()) {
-      this.framerateGraph.selectionEnabled = selectionEnabled;
-    }
+    let isEnabled = recording ? !recording.isRecording() : false;
+    yield this.graphs.selectionEnabled(isEnabled);
   }),
 
   /**
@@ -427,29 +323,34 @@ let OverviewView = {
   _onPrefChanged: Task.async(function* (_, prefName, prefValue) {
     switch (prefName) {
       case "enable-memory": {
-        $("#memory-overview").hidden = !prefValue;
+        this.graphs.enable("memory", prefValue);
         break;
       }
       case "enable-framerate": {
-        $("#time-framerate").hidden = !prefValue;
+        this.graphs.enable("framerate", prefValue);
         break;
       }
       case "hidden-markers": {
-        if (yield this._markersGraphAvailable()) {
+        if (yield this.graphs.isAvailable("markers")) {
           let blueprint = PerformanceController.getTimelineBlueprint();
-          this.markersOverview.setBlueprint(blueprint);
-          this.markersOverview.refresh({ force: true });
+          let graph = this.graphs.get("markers");
+          graph.setBlueprint(blueprint);
+          graph.refresh({ force: true });
         }
         break;
       }
     }
   }),
 
+  _setGraphVisibilityFromRecordingFeatures: function (recording) {
+  
+  },
+
   /**
    * Called when `devtools.theme` changes.
    */
   _onThemeChanged: function (_, theme) {
-    this.setTheme({ theme, redraw: true });
+    this.graphs.setTheme({ theme, redraw: true });
   },
 
   toString: () => "[object OverviewView]"

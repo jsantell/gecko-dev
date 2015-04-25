@@ -31,8 +31,6 @@ devtools.lazyRequireGetter(this, "FramerateGraph",
   "devtools/performance/performance-graphs", true);
 devtools.lazyRequireGetter(this, "MemoryGraph",
   "devtools/performance/performance-graphs", true);
-devtools.lazyRequireGetter(this, "MarkersOverview",
-  "devtools/shared/timeline/markers-overview", true);
 devtools.lazyRequireGetter(this, "Waterfall",
   "devtools/shared/timeline/waterfall", true);
 devtools.lazyRequireGetter(this, "MarkerDetails",
