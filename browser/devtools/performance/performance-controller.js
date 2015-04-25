@@ -27,9 +27,7 @@ devtools.lazyRequireGetter(this, "RecordingUtils",
   "devtools/performance/recording-utils", true);
 devtools.lazyRequireGetter(this, "RecordingModel",
   "devtools/performance/recording-model", true);
-devtools.lazyRequireGetter(this, "FramerateGraph",
-  "devtools/performance/performance-graphs", true);
-devtools.lazyRequireGetter(this, "MemoryGraph",
+devtools.lazyRequireGetter(this, "GraphsController",
   "devtools/performance/performance-graphs", true);
 devtools.lazyRequireGetter(this, "Waterfall",
   "devtools/shared/timeline/waterfall", true);
@@ -50,8 +48,6 @@ devtools.lazyRequireGetter(this, "FlameGraphUtils",
 devtools.lazyRequireGetter(this, "FlameGraph",
   "devtools/shared/widgets/FlameGraph", true);
 
-devtools.lazyImporter(this, "CanvasGraphUtils",
-  "resource:///modules/devtools/Graphs.jsm");
 devtools.lazyImporter(this, "SideMenuWidget",
   "resource:///modules/devtools/SideMenuWidget.jsm");
 devtools.lazyImporter(this, "PluralForm",

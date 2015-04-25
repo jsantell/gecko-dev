@@ -23,7 +23,7 @@ function spawnTest () {
 
   yield stopRecording(panel);
 
-  let overview = OverviewView.markersOverview;
+  let overview = OverviewView.graphs.get("timeline");
   let waterfall = WaterfallView.waterfall;
 
   // Select everything

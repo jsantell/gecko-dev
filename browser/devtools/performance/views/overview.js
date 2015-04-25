@@ -7,14 +7,13 @@
 // backend. Make sure this isn't lower than DEFAULT_TIMELINE_DATA_PULL_TIMEOUT
 // in toolkit/devtools/server/actors/timeline.js
 const OVERVIEW_UPDATE_INTERVAL = 200; // ms
-
 const FRAMERATE_GRAPH_LOW_RES_INTERVAL = 100; // ms
 const FRAMERATE_GRAPH_HIGH_RES_INTERVAL = 16; // ms
 
 
 /**
  * View handler for the overview panel's time view, displaying
- * framerate, markers and memory over time.
+ * framerate, timeline and memory over time.
  */
 let OverviewView = {
 
@@ -30,8 +29,14 @@ let OverviewView = {
 
     if (gFront.getMocksInUse().timeline) {
       this.disable();
+      return;
     }
 
+    // Enable all graphs that we can at init. Timeline graph will always be on if
+    // the target supports it.
+    this.graphs.enable("timeline", true);
+    this.graphs.enable("memory", PerformanceController.getOption("enable-memory"));
+    this.graphs.enable("framerate", PerformanceController.getOption("enable-framerate"));
     this._onRecordingWillStart = this._onRecordingWillStart.bind(this);
     this._onRecordingStarted = this._onRecordingStarted.bind(this);
     this._onRecordingWillStop = this._onRecordingWillStop.bind(this);
@@ -39,6 +44,7 @@ let OverviewView = {
     this._onRecordingSelected = this._onRecordingSelected.bind(this);
     this._onRecordingTick = this._onRecordingTick.bind(this);
     this._onGraphSelecting = this._onGraphSelecting.bind(this);
+    this._onGraphRendered = this._onGraphRendered.bind(this);
     this._onPrefChanged = this._onPrefChanged.bind(this);
     this._onThemeChanged = this._onThemeChanged.bind(this);
 
@@ -55,6 +61,7 @@ let OverviewView = {
     PerformanceController.on(EVENTS.CONSOLE_RECORDING_STOPPED, this._onRecordingStopped);
     PerformanceController.on(EVENTS.CONSOLE_RECORDING_WILL_STOP, this._onRecordingWillStop);
     this.graphs.on("selecting", this._onGraphSelecting);
+    this.graphs.on("rendered", this._onGraphRendered);
   },
 
   /**
@@ -72,12 +79,13 @@ let OverviewView = {
     PerformanceController.off(EVENTS.CONSOLE_RECORDING_STOPPED, this._onRecordingStopped);
     PerformanceController.off(EVENTS.CONSOLE_RECORDING_WILL_STOP, this._onRecordingWillStop);
     this.graphs.off("selecting", this._onGraphSelecting);
+    this.graphs.off("rendered", this._onGraphRendered);
     yield this.graphs.destroy();
   }),
 
   /**
    * Disabled in the event we're using a Timeline mock, so we'll have no
-   * markers, ticks or memory data to show, so just block rendering and hide
+   * timeline, ticks or memory data to show, so just block rendering and hide
    * the panel.
    */
   disable: function () {
@@ -132,7 +140,7 @@ let OverviewView = {
     }
     let mapStart = () => 0;
     let mapEnd = () => recording.getDuration();
-    let selection = this.markersOverview.getMappedSelection({ mapStart, mapEnd });
+    let selection = this.graphs.getMappedSelection({ mapStart, mapEnd });
     return { startTime: selection.min, endTime: selection.max };
   },
 
@@ -147,26 +155,7 @@ let OverviewView = {
       return;
     }
     let recording = PerformanceController.getCurrentRecording();
-    let duration = recording.getDuration();
-    let markers = recording.getMarkers();
-    let memory = recording.getMemory();
-    let timestamps = recording.getTicks();
-
-    // Empty or older recordings might yield no markers, memory or timestamps.
-    if (markers && (yield this._markersGraphAvailable())) {
-      this.markersOverview.setData({ markers, duration });
-      this.emit(EVENTS.MARKERS_GRAPH_RENDERED);
-    }
-    if (memory && (yield this._memoryGraphAvailable())) {
-      this.memoryOverview.dataDuration = duration;
-      this.memoryOverview.setData(memory);
-      this.emit(EVENTS.MEMORY_GRAPH_RENDERED);
-    }
-    if (timestamps && (yield this._framerateGraphAvailable())) {
-      this.framerateGraph.dataDuration = duration;
-      yield this.framerateGraph.setDataFromTimestamps(timestamps, resolution);
-      this.emit(EVENTS.FRAMERATE_GRAPH_RENDERED);
-    }
+    yield this.graphs.render(recording.getAllData(), resolution);
 
     // Finished rendering all graphs in this overview.
     this.emit(EVENTS.OVERVIEW_RENDERED);
@@ -190,24 +179,6 @@ let OverviewView = {
     // `stop` was called before the _prepareNextTick call was executed.
     if (this.isRendering()) {
       this._timeoutId = setTimeout(this._onRecordingTick, OVERVIEW_UPDATE_INTERVAL);
-    }
-  },
-
-  /**
-   * Fired when the graph selection has changed. Called by
-   * mouseup and scroll events.
-   */
-  _onGraphSelecting: function () {
-    if (this._stopSelectionChangeEventPropagation) {
-      return;
-    }
-    // If the range is smaller than a pixel (which can happen when performing
-    // a click on the graphs), treat this as a cleared selection.
-    let interval = this.getTimeInterval();
-    if (interval.endTime - interval.startTime < 1) {
-      this.emit(EVENTS.OVERVIEW_RANGE_CLEARED);
-    } else {
-      this.emit(EVENTS.OVERVIEW_RANGE_SELECTED, interval);
     }
   },
 
@@ -265,9 +236,11 @@ let OverviewView = {
 
     // If this recording is complete, render the high res graph
     if (!recording.isRecording()) {
+      console.log("######recording");
       yield this.render(FRAMERATE_GRAPH_HIGH_RES_INTERVAL);
     }
     yield this._checkSelection(recording);
+    console.log("drop");
     this.graphs.dropSelection();
   }),
 
@@ -315,6 +288,38 @@ let OverviewView = {
     let isEnabled = recording ? !recording.isRecording() : false;
     yield this.graphs.selectionEnabled(isEnabled);
   }),
+  
+  /**
+   * Fired when the graph selection has changed. Called by
+   * mouseup and scroll events.
+   */
+  _onGraphSelecting: function () {
+    if (this._stopSelectionChangeEventPropagation) {
+      return;
+    }
+    // If the range is smaller than a pixel (which can happen when performing
+    // a click on the graphs), treat this as a cleared selection.
+    let interval = this.getTimeInterval();
+    if (interval.endTime - interval.startTime < 1) {
+      this.emit(EVENTS.OVERVIEW_RANGE_CLEARED);
+    } else {
+      this.emit(EVENTS.OVERVIEW_RANGE_SELECTED, interval);
+    }
+  },
+
+  _onGraphRendered: function (_, graphName) {
+    switch (graphName) {
+      case "timeline":
+        this.emit(EVENTS.MARKERS_GRAPH_RENDERED);
+        break;
+      case "memory":
+        this.emit(EVENTS.MEMORY_GRAPH_RENDERED);
+        break;
+      case "framerate":
+        this.emit(EVENTS.FRAMERATE_GRAPH_RENDERED);
+        break;
+    }
+  },
 
   /**
    * Called whenever a preference in `devtools.performance.ui.` changes. Used
@@ -322,18 +327,10 @@ let OverviewView = {
    */
   _onPrefChanged: Task.async(function* (_, prefName, prefValue) {
     switch (prefName) {
-      case "enable-memory": {
-        this.graphs.enable("memory", prefValue);
-        break;
-      }
-      case "enable-framerate": {
-        this.graphs.enable("framerate", prefValue);
-        break;
-      }
       case "hidden-markers": {
-        if (yield this.graphs.isAvailable("markers")) {
+        let graph;
+        if (graph = yield this.graphs.isAvailable("timeline")) {
           let blueprint = PerformanceController.getTimelineBlueprint();
-          let graph = this.graphs.get("markers");
           graph.setBlueprint(blueprint);
           graph.refresh({ force: true });
         }
@@ -343,7 +340,9 @@ let OverviewView = {
   }),
 
   _setGraphVisibilityFromRecordingFeatures: function (recording) {
-  
+    let { withTicks, withMemory } = recording.getConfiguration();
+    this.graphs.enable("memory", withMemory);
+    this.graphs.enable("framerate", withTicks);
   },
 
   /**

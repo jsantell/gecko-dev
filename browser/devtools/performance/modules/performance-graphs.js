@@ -11,6 +11,7 @@ const {Cc, Ci, Cu, Cr} = require("chrome");
 
 Cu.import("resource:///modules/devtools/Graphs.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 
 const { colorUtils: { setAlpha }} = require("devtools/css-color");
 const { getColor } = require("devtools/shared/theme");
@@ -19,8 +20,10 @@ loader.lazyRequireGetter(this, "ProfilerGlobal",
   "devtools/shared/profiler/global");
 loader.lazyRequireGetter(this, "TimelineGlobal",
   "devtools/shared/timeline/global");
-devtools.lazyRequireGetter(this, "MarkersOverview",
+loader.lazyRequireGetter(this, "MarkersOverview",
   "devtools/shared/timeline/markers-overview", true);
+loader.lazyRequireGetter(this, "EventEmitter",
+  "devtools/toolkit/event-emitter");
 
 /**
  * For line graphs
@@ -35,7 +38,7 @@ const FRAMERATE_GRAPH_COLOR_NAME = "highlight-green";
 const MEMORY_GRAPH_COLOR_NAME = "highlight-blue";
 
 /**
- * For markers overview
+ * For timeline overview
  */
 const MARKERS_GRAPH_HEADER_HEIGHT = 14; // px
 const MARKERS_GRAPH_ROW_HEIGHT = 10; // px
@@ -104,10 +107,11 @@ function FramerateGraph(parent) {
 
 FramerateGraph.prototype = Heritage.extend(PerformanceGraph.prototype, {
   mainColor: FRAMERATE_GRAPH_COLOR_NAME,
-  setData: PerformanceGraph.prototype.setDataFromTimestamps
+  setPerformanceData: function ({ duration, ticks }, resolution) {
+    this.dataDuration = duration;
+    return this.setDataFromTimestamps(ticks, resolution);
+  }
 });
-
-exports.FramerateGraph = FramerateGraph;
 
 /**
  * Constructor for the memory graph. Inherits from PerformanceGraph.
@@ -120,10 +124,12 @@ function MemoryGraph(parent) {
 }
 
 MemoryGraph.prototype = Heritage.extend(PerformanceGraph.prototype, {
-  mainColor: MEMORY_GRAPH_COLOR_NAME
+  mainColor: MEMORY_GRAPH_COLOR_NAME,
+  setPerformanceData: function ({ duration, memory }) {
+    this.dataDuration = duration;
+    return this.setData(memory);
+  }
 });
-
-exports.MemoryGraph = MemoryGraph;
 
 function TimelineOverview(parent, blueprint) {
   MarkersOverview.call(this, parent, blueprint);
@@ -133,6 +139,7 @@ TimelineOverview.prototype = Heritage.extend(MarkersOverview.prototype, {
   headerHeight: MARKERS_GRAPH_HEADER_HEIGHT,
   rowHeight: MARKERS_GRAPH_ROW_HEIGHT,
   groupPadding: MARKERS_GROUP_VERTICAL_PADDING,
+  setPerformanceData: MarkersOverview.prototype.setData
 });
 
 const GRAPH_DEFINITIONS = {
@@ -144,7 +151,7 @@ const GRAPH_DEFINITIONS = {
     constructor: FramerateGraph,
     selector: "#time-framerate",
   },
-  markers: {
+  timeline: {
     constructor: TimelineOverview,
     selector: "#markers-overview",
     needsBlueprints: true,
@@ -154,7 +161,7 @@ const GRAPH_DEFINITIONS = {
 
 /**
  * A controller for orchestrating the performance's tool overview graphs. Constructs,
- * syncs, toggles displays and defines the memory, framerate and markers view.
+ * syncs, toggles displays and defines the memory, framerate and timeline view.
  *
  * @param {object} definition
  * @param {DOMElement} root
@@ -163,16 +170,18 @@ const GRAPH_DEFINITIONS = {
  */
 function GraphsController ({ definition, root, getBlueprint, getTheme }) {
   this._graphs = {};
+  this._enabled = new Set();
   this._definition = definition || GRAPH_DEFINITIONS;
   this._root = root;
   this._getBlueprint = getBlueprint;
   this._getTheme = getTheme;
-  this._primaryLink = Object.keys(definition).filter(def => def.primaryLink)[0];
+  this._primaryLink = Object.keys(this._definition).filter(name => this._definition[name].primaryLink)[0];
   this.$ = root.ownerDocument.querySelector.bind(root.ownerDocument);
 
   EventEmitter.decorate(this);
   this._onSelecting = this._onSelecting.bind(this);
 }
+exports.GraphsController = GraphsController;
 
 GraphsController.prototype = {
 
@@ -184,19 +193,35 @@ GraphsController.prototype = {
   },
 
   /**
+   * Iterates through all graphs and renders the data
+   * from a RecordingModel. Takes a resolution value used in
+   * some graphs.
+   */
+  render: Task.async(function *(recordingData, resolution) {
+    for (let graphName of this._enabled) {
+      let graph;
+      if (graph = yield this.isAvailable(graphName)) {
+        yield graph.setPerformanceData(recordingData, resolution);
+        this.emit("rendered", graphName);
+      }
+    }
+  }),
+
+  /**
    * Destroys the underlying graphs.
    */
   destroy: Task.async(function *() {
-    let primary = this.getPrimaryLink();
+    let primary = this._getPrimaryLink();
 
     if (primary) {
       primary.off("selecting", this._onSelecting);
     }
 
-    for (let graph in this._graphs) {
-      yield this._graphs[graph].destroy();
+    for (let graphName in this._graphs) {
+      yield this._graphs[graphName].destroy();
+      this._graphs[graphName] = null;
     }
-    this.$ = this._graphs = this._root = null;
+    this.$ = this._root = null;
   }),
 
   /**
@@ -213,32 +238,32 @@ GraphsController.prototype = {
 
   /**
    * Sets up the graph, if needed. Returns a promise resolving
-   * to a boolean indicating whether or not the graph is enabled, and
-   * sets it up if it needs.
+   * to the graph if it is enabled once it's ready, or otherwise returns
+   * null if disabled.
    */
   isAvailable: Task.async(function *(graphName) {
-    if (this._disabled.has(graphName)) {
-      return false;
+    if (!this._enabled.has(graphName)) {
+      return null;
     }
 
-    if (this.get(graphName)) {
-      yield this.get(graphName).ready();
-      return true;
+    let graph = this.get(graphName);
+
+    if (!graph) {
+      graph = yield this._construct(graphName);
     }
 
-    yield this._construct(graphName);
-    return true;
+    yield graph.ready();
+    return graph;
   }),
 
   enable: function (graphName, isEnabled) {
     let el = this.$(this._definition[graphName].selector);
     if (isEnabled) {
-      this._disabled.delete(graphName);
-      el.hidden = false;
+      this._enabled.add(graphName);
     } else {
-      this._disabled.add(graphName);
-      el.hidden = true;
+      this._enabled.delete(graphName);
     }
+    el.hidden = !isEnabled;
   },
 
   /**
@@ -255,23 +280,34 @@ GraphsController.prototype = {
    * for keeping the graphs' selections in sync.
    */
   setMappedSelection: function (selection, { mapStart, mapEnd }) {
-    this._getPrimaryLink().setMappedSelection(select, { mapStart, mapEnd });
+    if (this._getPrimaryLink()) {
+      return this._getPrimaryLink().setMappedSelection(selection, { mapStart, mapEnd });
+    }
+  },
+
+  getMappedSelection: function ({ mapStart, mapEnd }) {
+    if (this._getPrimaryLink()) {
+      return this._getPrimaryLink().getMappedSelection({ mapStart, mapEnd });
+    }
   },
 
   /**
    * Drops the selection.
    */
   dropSelection: function () {
-    this._getPrimaryLink().dropSelection();
+    if (this._getPrimaryLink()) {
+      return this._getPrimaryLink().dropSelection();
+    }
   },
 
   /**
    * Makes sure the selection is enabled or disabled in all the graphs.
    */
   selectionEnabled: Task.async(function *(enabled) {
-    for (let graph in this._graphs) {
-      if (yield this.isAvailable(graph)) {
-        this.get(graph).selectionEnabled = enabled;
+    for (let graphName in this._graphs) {
+      let graph;
+      if (graph = yield this.isAvailable(graphName)) {
+        graph.selectionEnabled = enabled;
       }
     }
   }),
@@ -285,6 +321,7 @@ GraphsController.prototype = {
     let blueprint = def.needsBlueprints ? this._getBlueprint() : void 0;
     let graph = this._graphs[graphName] = new def.constructor(el, blueprint);
 
+    // Sync the graphs' animations and selections together
     if (def.primaryLink) {
       graph.on("selecting", this._onSelecting);
     } else {
@@ -293,8 +330,8 @@ GraphsController.prototype = {
     }
 
     yield graph.ready();
-
     this.setTheme();
+    return graph;
   }),
 
   /**
@@ -311,4 +348,4 @@ GraphsController.prototype = {
   _onSelecting: function () {
     this.emit("selecting");
   },
-});
+};
