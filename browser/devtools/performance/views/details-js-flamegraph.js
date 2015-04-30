@@ -29,9 +29,11 @@ let JsFlameGraphView = Heritage.extend(DetailsSubview, {
 
     this._onRangeChangeInGraph = this._onRangeChangeInGraph.bind(this);
     this._onThemeChanged = this._onThemeChanged.bind(this);
+    this._onBlockClicked = this._onBlockClicked.bind(this);
 
     PerformanceController.on(EVENTS.THEME_CHANGED, this._onThemeChanged);
     this.graph.on("selecting", this._onRangeChangeInGraph);
+    this.graph.on("block-clicked", this._onBlockClicked);
   }),
 
   /**
@@ -95,6 +97,17 @@ let JsFlameGraphView = Heritage.extend(DetailsSubview, {
     let profile = recording.getProfile();
     let samples = profile.threads[0].samples;
     FlameGraphUtils.removeFromCache(samples);
+  },
+
+  /**
+   * Called when a block in the flamegraph is clicked.
+   * Opens block in the debugger.
+   */
+  _onBlockClicked: function (_, block) {
+    let { parsedLocation: { url, line }} = block;
+    if (url && line) {
+      gToolbox.viewSourceInDebugger(url, line);
+    }
   },
 
   /**

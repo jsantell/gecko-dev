@@ -15,6 +15,7 @@ const HTML_NS = "http://www.w3.org/1999/xhtml";
 const GRAPH_SRC = "chrome://browser/content/devtools/graphs-frame.xhtml";
 const L10N = new ViewHelpers.L10N();
 
+const CLICK_VS_DRAG_TIMER = 300; // ms
 const GRAPH_RESIZE_EVENTS_DRAIN = 100; // ms
 
 const GRAPH_WHEEL_ZOOM_SENSITIVITY = 0.00035;
@@ -473,13 +474,13 @@ FlameGraph.prototype = {
 
     let fontSize = FLAME_GRAPH_BLOCK_TEXT_FONT_SIZE * this._pixelRatio;
     let fontFamily = FLAME_GRAPH_BLOCK_TEXT_FONT_FAMILY;
-    let visibleBlocksInfo = this._drawPyramidFill(dataSource, verticalOffset, dataOffset, dataScale);
+    this._visibleBlocksInfo = this._drawPyramidFill(dataSource, verticalOffset, dataOffset, dataScale);
 
     ctx.textBaseline = "middle";
     ctx.font = fontSize + "px " + fontFamily;
     ctx.fillStyle = this.blockTextColor;
 
-    this._drawPyramidText(visibleBlocksInfo, verticalOffset, dataOffset, dataScale);
+    this._drawPyramidText(this._visibleBlocksInfo, verticalOffset, dataOffset, dataScale);
   },
 
   /**
@@ -798,12 +799,21 @@ FlameGraph.prototype = {
     this._verticalDragEnabled = false;
 
     this._canvas.setAttribute("input", "adjusting-view-area");
+
+    // Use a timer to track when a mousedown event occurs, and again
+    // in _onMouseUp to see if we should simulate a "click" event, or if this
+    // is more similar to a drag gesture.
+    this._mouseDownHolding = false;
+    setNamedTimeout("flamegraph-mouse-down", CLICK_VS_DRAG_TIMER, () => this._mouseDownHolding = true);
   },
 
   /**
    * Listener for the "mouseup" event on the graph's container.
    */
-  _onMouseUp: function() {
+  _onMouseUp: function(e) {
+    let offset = this._getContainerOffset();
+    let mouseX = (e.clientX - offset.left) * this._pixelRatio;
+    let mouseY = (e.clientY - offset.top) * this._pixelRatio;
     this._selectionDragger.origin = null;
     this._verticalOffsetDragger.origin = null;
     this._horizontalDragEnabled = false;
@@ -811,6 +821,17 @@ FlameGraph.prototype = {
     this._verticalDragEnabled = false;
     this._verticalDragDirection = 0;
     this._canvas.removeAttribute("input");
+ 
+    // Check to see if mousedown just occurred CLICK_VS_DRAG_TIMER ms ago,
+    // or if this is more of a "drag" and hold gesture
+    if (!this._visibleBlocksInfo || this._mouseDownHolding) {
+      return;
+    }
+    
+    let block = findBlockFromPosition(this._visibleBlocksInfo, { x: mouseX, y: mouseY });
+    if (block) {
+      this._onBlockClick(block);
+    }
   },
 
   /**
@@ -948,7 +969,14 @@ FlameGraph.prototype = {
     if (this.hasData()) {
       setNamedTimeout(this._uid, GRAPH_RESIZE_EVENTS_DRAIN, this.refresh);
     }
-  }
+  },
+
+  /**
+   * Fired by _onMouseUp when it appears to be a click rather than a drag.
+   */
+  _onBlockClick: function (block) {
+    this.emit("block-clicked", block);
+  },
 };
 
 const FLAME_GRAPH_BLOCK_HEIGHT = 12; // px
@@ -1064,6 +1092,7 @@ let FlameGraphUtils = {
 
           bucket.push(prevFrames[frameIndex] = {
             srcData: { startTime: prevTime, rawLocation: location },
+            parsedLocation: FrameUtils.parseLocation(frame),
             x: prevTime,
             y: frameIndex * FLAME_GRAPH_BLOCK_HEIGHT,
             width: time - prevTime,
@@ -1154,6 +1183,8 @@ let FlameGraphUtils = {
       return frame.location;
     }
 
+    // This will pull from the FrameUtils cache as it was handled
+    // by _formatLabel's caller for `parsedLocation` data.
     let { functionName, fileName, line } = FrameUtils.parseLocation(frame);
     let label = functionName;
 
@@ -1164,6 +1195,18 @@ let FlameGraphUtils = {
     return label;
   }
 };
+
+function findBlockFromPosition (blocks, { x, y }) {
+  for (let { block, rect } of blocks) {
+    if (rect.rectLeft < x &&
+        (rect.rectLeft + rect.rectWidth) > x &&
+        rect.rectTop < y &&
+        (rect.rectTop + rect.rectHeight) > y) {
+      return block;
+    }
+  }
+  return null;
+}
 
 exports.FlameGraph = FlameGraph;
 exports.FlameGraphUtils = FlameGraphUtils;
