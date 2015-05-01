@@ -326,6 +326,14 @@ GraphsController.prototype = {
   },
 
   /**
+   * Returns an array of graphs that have been created, not necessarily
+   * enabled currently.
+   */
+  getGraphs: function () {
+    return Object.keys(this._graphs).map(name => this._graphs[name]);
+  },
+
+  /**
    * Drops the selection.
    */
   dropSelection: function () {
