@@ -169,6 +169,9 @@ RootActor.prototype = {
     // Whether or not `getProfile()` supports specifying a `startTime`
     // and `endTime` to filter out samples. Fx40+
     profilerDataFilterable: true,
+    // Whether or not profiler actor has `getBufferInfo` method. Uses old actors,
+    // so not detectable by utilities.
+    profilerBufferStatus: true,
   },
 
   /**
