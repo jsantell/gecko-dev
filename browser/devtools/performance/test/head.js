@@ -13,9 +13,12 @@ let { gDevTools } = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
 let { DevToolsUtils } = Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm", {});
 let { DebuggerServer } = Cu.import("resource://gre/modules/devtools/dbg-server.jsm", {});
 let { merge } = devtools.require("sdk/util/object");
+let { on: systemOn, emit: systemEmit } = devtools.require("sdk/system/events");
 let { getPerformanceActorsConnection, PerformanceFront } = devtools.require("devtools/performance/front");
+let PMM = Cc["@mozilla.org/parentprocessmessagemanager;1"].getService(Ci.nsIMessageBroadcaster);
 
-let nsIProfilerModule = Cc["@mozilla.org/tools/profiler;1"].getService(Ci.nsIProfiler);
+let { ProfilerFront } = devtools.require("devtools/performance/actors");
+
 let TargetFactory = devtools.TargetFactory;
 let mm = null;
 
@@ -93,9 +96,7 @@ registerCleanupFunction(() => {
   });
 
   // Make sure the profiler module is stopped when the test finishes.
-  nsIProfilerModule.StopProfiler();
-
-  Cu.forceGC();
+  return stopProfiler().then(() => Cu.forceGC());
 });
 
 function addTab(aUrl, aWindow) {
@@ -379,6 +380,26 @@ function* startRecording(panel, options = {
     "The record button should still be checked.");
   ok(!button.hasAttribute("locked"),
     "The record button should not be locked.");
+}
+
+function sendProfilerCommand (method, args=[]) {
+  let { promise, resolve } = Promise.defer();
+  PMM.addMessageListener("devtools-profiler-command:response", function handler ({ data }) {
+    if (data.method === method) {
+      PMM.removeMessageListener("devtools-profiler-command:response", handler);
+      resolve(data.result);
+    }
+  });
+  PMM.broadcastAsyncMessage("devtools-profiler-command:request", { method, args });
+  return promise;
+}
+
+function isProfilerActive () {
+  return sendProfilerCommand("IsActive");
+}
+
+function stopProfiler () {
+  return sendProfilerCommand("StopProfiler");
 }
 
 function* stopRecording(panel, options = {

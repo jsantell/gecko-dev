@@ -12,18 +12,18 @@ function spawnTest () {
   let { EVENTS, PerformanceController } = panel.panelWin;
   let front = panel.panelWin.gFront;
 
-  ok(!nsIProfilerModule.IsActive(),
+  ok(!(yield isProfilerActive()),
     "The built-in profiler module should not have been automatically started.");
 
   yield startRecording(panel);
   busyWait(WAIT_TIME); // allow the profiler module to sample some cpu activity
 
-  ok(nsIProfilerModule.IsActive(),
+  ok((yield isProfilerActive()),
     "The built-in profiler module should now be active.");
 
   yield stopRecording(panel);
 
-  ok(nsIProfilerModule.IsActive(),
+  ok((yield isProfilerActive()),
     "The built-in profiler module should still be active.");
 
   yield teardown(panel);

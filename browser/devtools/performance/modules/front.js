@@ -503,6 +503,10 @@ PerformanceFront.prototype = {
     return this._connection.isRecording();
   },
 
+  getProfilerStatus: function () {
+    return this._connection._profiler.getStatus();
+  },
+
   /**
    * Interacts with the connection's actors. Should only be used in tests.
    */

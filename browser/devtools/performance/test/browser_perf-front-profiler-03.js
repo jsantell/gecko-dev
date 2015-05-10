@@ -22,11 +22,11 @@ let test = Task.async(function*() {
   yield alreadyActive;
 
   yield teardown(firstPanel);
-  ok(nsIProfilerModule.IsActive(),
+  ok((yield isProfilerActive()),
     "The built-in profiler module should still be active.");
 
   yield teardown(secondPanel);
-  ok(!nsIProfilerModule.IsActive(),
+  ok(!(yield isProfilerActive()),
     "The built-in profiler module should have been automatically stoped.");
 
   finish();

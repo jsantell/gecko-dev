@@ -6,6 +6,8 @@
 const {Cc, Ci, Cu, Cr} = require("chrome");
 const Services = require("Services");
 const DevToolsUtils = require("devtools/toolkit/DevToolsUtils.js");
+const { on: systemOn } = require("sdk/system/events");
+const PMM = Cc["@mozilla.org/childprocessmessagemanager;1"].getService(Ci.nsISyncMessageSender);
 
 let DEFAULT_PROFILER_OPTIONS = {
   // When using the DevTools Performance Tools, this will be overridden
@@ -27,6 +29,16 @@ let gProfilerConsumers = 0;
 
 loader.lazyGetter(this, "nsIProfilerModule", () => {
   return Cc["@mozilla.org/tools/profiler;1"].getService(Ci.nsIProfiler);
+});
+
+/**
+ * Register a multiprocess observer to `devtools-profiler-command:request` to communicate
+ * with chrome processes.
+ * Used mostly for tests in multiprocess Firefox without requiring an RDP connection.
+ */
+PMM.addMessageListener("devtools-profiler-command:request", function ({ data: { method, args }}) {
+  let result = nsIProfilerModule[method].apply(nsIProfilerModule, args || []);
+  PMM.sendAsyncMessage("devtools-profiler-command:response", { method, result });
 });
 
 /**

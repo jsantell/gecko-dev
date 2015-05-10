@@ -13,7 +13,7 @@ let test = Task.async(function*() {
   let ENTRIES = 1000000;
   let INTERVAL = 1;
   let FEATURES = ["js"];
-  nsIProfilerModule.StartProfiler(ENTRIES, INTERVAL, FEATURES, FEATURES.length);
+  yield sendProfilerCommand("StartProfiler", [ENTRIES, INTERVAL, FEATURES, FEATURES.length]);
 
   let { panel: firstPanel } = yield initPerformance(SIMPLE_URL);
   let firstFront = firstPanel.panelWin.gFront;
@@ -32,11 +32,11 @@ let test = Task.async(function*() {
   ok(secondRecording._profilerStartTime > 0, "The profiler was not restarted.");
 
   yield teardown(firstPanel);
-  ok(nsIProfilerModule.IsActive(),
+  ok((yield isProfilerActive()),
     "The built-in profiler module should still be active.");
 
   yield teardown(secondPanel);
-  ok(!nsIProfilerModule.IsActive(),
+  ok(!(yield isProfilerActive()),
     "The built-in profiler module should have been automatically stoped.");
 
   finish();
