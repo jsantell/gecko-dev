@@ -25,4 +25,7 @@ dictionary ProfileTimelineMarker {
   unsigned short eventPhase;
   /* For Paint markers.  */
   sequence<ProfileTimelineLayerRect> rectangles;
+  /* For Style markers. */
+  DOMString changeHint;
+  DOMString restyleHint;
 };

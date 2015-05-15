@@ -4186,7 +4186,6 @@ RestyleManager::StructsToLog()
 }
 #endif
 
-#ifdef DEBUG
 /* static */ nsCString
 RestyleManager::RestyleHintToString(nsRestyleHint aHint)
 {
@@ -4282,6 +4281,7 @@ RestyleManager::ChangeHintToString(nsChangeHint aHint)
   return result;
 }
 
+#ifdef DEBUG
 /* static */ nsCString
 RestyleManager::StructNamesToString(uint32_t aSIDs)
 {

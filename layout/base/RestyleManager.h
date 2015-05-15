@@ -348,10 +348,8 @@ public:
     mOverflowChangedTracker.Flush();
   }
 
-#ifdef DEBUG
   static nsCString RestyleHintToString(nsRestyleHint aHint);
   static nsCString ChangeHintToString(nsChangeHint aHint);
-#endif
 
 private:
   void PostRestyleEventInternal(bool aForLazyConstruction);
@@ -409,8 +407,8 @@ public:
   // environment variable.
   static uint32_t StructsToLog();
 
-  static nsCString StructNamesToString(uint32_t aSIDs);
   int32_t& LoggingDepth() { return mLoggingDepth; }
+  static nsCString StructNamesToString(uint32_t aSIDs);
 #endif
 
 private:
@@ -691,9 +689,7 @@ private:
   int32_t& LoggingDepth() { return mLoggingDepth; }
 #endif
 
-#ifdef DEBUG
-  static nsCString RestyleResultToString(RestyleResult aRestyleResult);
-#endif
+static nsCString RestyleResultToString(RestyleResult aRestyleResult);
 
 private:
   nsPresContext* const mPresContext;

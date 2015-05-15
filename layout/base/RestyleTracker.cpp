@@ -96,6 +96,40 @@ struct RestyleCollector {
 #endif
 };
 
+class RestyleTimelineMarker : public TimelineMarker
+{
+public:
+  RestyleTimelineMarker(nsDocShell* aDocShell,
+                        TracingMetadata aMetaData,
+                        nsRestyleHint aRestyleHint,
+                        nsChangeHint aChangeHint)
+    : TimelineMarker(aDocShell, "Styles", aMetaData)
+  {
+    if (aRestyleHint) {
+      mRestyleHint.AssignWithConversion(RestyleManager::RestyleHintToString(aRestyleHint));
+    }
+    if (aChangeHint) {
+      mChangeHint.AssignWithConversion(RestyleManager::ChangeHintToString(aChangeHint));
+    }
+  }
+
+  virtual void AddDetails(mozilla::dom::ProfileTimelineMarker& aMarker) override
+  {
+    if (GetMetaData() == TRACING_INTERVAL_START) {
+      CaptureStack();
+      aMarker.mRestyleHint.Construct(GetRestyleHintString());
+      aMarker.mChangeHint.Construct(GetChangeHintString());
+    }
+  }
+
+  const nsString GetRestyleHintString() const { return mRestyleHint; }
+  const nsString GetChangeHintString() const { return mChangeHint; }
+
+private:
+  nsAutoString mRestyleHint;
+  nsAutoString mChangeHint;
+};
+
 static PLDHashOperator
 CollectRestyles(nsISupports* aElement,
                 nsAutoPtr<RestyleTracker::RestyleData>& aData,
@@ -201,6 +235,12 @@ RestyleTracker::DoProcessRestyles()
 {
   PROFILER_LABEL("RestyleTracker", "ProcessRestyles",
     js::ProfileEntry::Category::CSS);
+
+  bool isTimelineRecording = false;
+  nsDocShell* docShell = static_cast<nsDocShell*>(mRestyleManager->PresContext()->GetDocShell());
+  if (docShell) {
+    docShell->GetRecordProfileTimelineMarkers(&isTimelineRecording);
+  }
 
   // Create a ReframingStyleContexts struct on the stack and put it in our
   // mReframingStyleContexts for almost all of the remaining scope of
@@ -311,6 +351,15 @@ RestyleTracker::DoProcessRestyles()
           continue;
         }
 
+        if (isTimelineRecording) {
+          mozilla::UniquePtr<TimelineMarker> marker =
+            MakeUnique<RestyleTimelineMarker>(docShell,
+                                             TRACING_INTERVAL_START,
+                                             data->mRestyleHint,
+                                             data->mChangeHint);
+          docShell->AddProfileTimelineMarker(Move(marker));
+        }
+
 #if defined(MOZ_ENABLE_PROFILER_SPS) && !defined(MOZILLA_XPCOMRT_API)
         Maybe<GeckoProfilerTracingRAII> profilerRAII;
         if (profiler_feature_active("restyle")) {
@@ -319,6 +368,15 @@ RestyleTracker::DoProcessRestyles()
 #endif
         ProcessOneRestyle(element, data->mRestyleHint, data->mChangeHint);
         AddRestyleRootsIfAwaitingRestyle(data->mDescendants);
+
+        if (isTimelineRecording) {
+          mozilla::UniquePtr<TimelineMarker> marker =
+            MakeUnique<RestyleTimelineMarker>(docShell,
+                                             TRACING_INTERVAL_END,
+                                             data->mRestyleHint,
+                                             data->mChangeHint);
+          docShell->AddProfileTimelineMarker(Move(marker));
+        }
       }
 
       if (mHaveLaterSiblingRestyles) {
@@ -359,9 +417,27 @@ RestyleTracker::DoProcessRestyles()
             profilerRAII.emplace("Paint", "Styles", Move(currentRestyle->mBacktrace));
           }
 #endif
+          if (isTimelineRecording) {
+            mozilla::UniquePtr<TimelineMarker> marker =
+              MakeUnique<RestyleTimelineMarker>(docShell,
+                                               TRACING_INTERVAL_START,
+                                               currentRestyle->mRestyleHint,
+                                               currentRestyle->mChangeHint);
+            docShell->AddProfileTimelineMarker(Move(marker));
+          }
+
           ProcessOneRestyle(currentRestyle->mElement,
                             currentRestyle->mRestyleHint,
                             currentRestyle->mChangeHint);
+
+          if (isTimelineRecording) {
+            mozilla::UniquePtr<TimelineMarker> marker =
+              MakeUnique<RestyleTimelineMarker>(docShell,
+                                               TRACING_INTERVAL_END,
+                                               currentRestyle->mRestyleHint,
+                                               currentRestyle->mChangeHint);
+            docShell->AddProfileTimelineMarker(Move(marker));
+          }
         }
       }
     }
