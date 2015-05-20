@@ -66,16 +66,19 @@ exports.getMarkerClassName = getMarkerClassName;
  */
 function getMarkerFields (marker) {
   let blueprint = TIMELINE_BLUEPRINT[marker.name];
+
+  // If blueprint.fields is a function, use that
+  if (typeof blueprint.fields === "function") {
+    let fields = blueprint.fields(marker);
+    return Object.keys(fields || []).map(label => ({ label, value: fields[label] }));
+  }
+
+  // Otherwise, iterate over the array
   return (blueprint.fields || []).reduce((fields, field) => {
     // Ensure this marker has this field present
     if (field.property in marker) {
       let label = field.label;
       let value = marker[field.property];
-      // If a formatter function defined, use it to get the
-      // value we actually want to display.
-      if (typeof field.formatter === "function") {
-        value = field.formatter(marker);
-      }
       fields.push({ label, value });
     }
     return fields;
