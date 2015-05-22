@@ -128,10 +128,6 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     let displayedData = this.getDisplayedData();
     let frameInfo = this.frame.getInfo();
 
-    // When inverting call tree, leaf nodes (in this case, level 0 tree items)
-    // and their children must render costs differently
-    let isInvertedLeaf = this._level === 0 && this.inverted;
-
     if (this.visibleCells.duration) {
       var durationCell = this._createTimeCell(displayedData.totalDuration);
     }
@@ -343,20 +339,69 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     let data = this._cachedDisplayedData = Object.create(null);
     let frameInfo = this.frame.getInfo();
 
-    // Self/total duration.
-    if (this.visibleCells.duration) {
-      data.totalDuration = this.frame.duration;
-    }
-    if (this.visibleCells.selfDuration) {
-      data.selfDuration = this.root.frame.selfDuration[this.frame.key];
-    }
+    /**
+     * When inverting call tree, the costs and times are dependent on position
+     * in the tree. We must only count leaf nodes with self cost, and total costs
+     * dependent on how many times the leaf node was found with a full stack path.
+     *
+     *   Total |  Self | Calls | Function
+     * ============================================================================
+     *  100%   |  100% |   100 | ▼ C
+     *   50%   |   0%  |    50 |   ▼ B
+     *   50%   |   0%  |    50 |     ▼ A
+     *   50%   |   0%  |    50 |   ▼ B
+     *
+     * Every instance of a `CallView` represents a row in the call tree. The same
+     * parent node is used for all rows.
+     */
 
-    // Self/total samples percentage.
-    if (this.visibleCells.percentage) {
-      data.totalPercentage = this.frame.samples / this.root.frame.samples * 100;
-    }
-    if (this.visibleCells.selfPercentage) {
-      data.selfPercentage = this.root.frame.selfCount[this.frame.key] / this.root.frame.samples * 100;
+    // Leaf nodes in an inverted tree don't have to do anything special.
+    let isLeaf = this._level === 0;
+    if (this.inverted && !isLeaf) {
+      let { stack, frame: leafFrame } = this._getLeafAndStack();
+      let percentOfLeafCalls = leafFrame.getCallerPercentByStack(stack);
+
+      // Self/total duration.
+      if (this.visibleCells.duration) {
+        data.totalDuration = leafFrame.duration * percentOfLeafCalls;
+      }
+      if (this.visibleCells.selfDuration) {
+        data.selfDuration = 0;
+      }
+
+      // Self/total samples percentage.
+      if (this.visibleCells.percentage) {
+        data.totalPercentage = leafFrame.samples / this.root.frame.samples * 100 * percentOfLeafCalls;
+      }
+      if (this.visibleCells.selfPercentage) {
+        data.selfPercentage = 0;
+      }
+
+      // Raw samples.
+      if (this.visibleCells.samples) {
+        data.samples = 0;
+      }
+    } else {
+      // Self/total duration.
+      if (this.visibleCells.duration) {
+        data.totalDuration = this.frame.duration;
+      }
+      if (this.visibleCells.selfDuration) {
+        data.selfDuration = this.root.frame.selfDuration[this.frame.key];
+      }
+
+      // Self/total samples percentage.
+      if (this.visibleCells.percentage) {
+        data.totalPercentage = this.frame.samples / this.root.frame.samples * 100;
+      }
+      if (this.visibleCells.selfPercentage) {
+        data.selfPercentage = this.root.frame.selfCount[this.frame.key] / this.root.frame.samples * 100;
+      }
+
+      // Raw samples.
+      if (this.visibleCells.samples) {
+        data.samples = this.frame.samples;
+      }
     }
 
     // Self/total allocations count.
@@ -366,11 +411,6 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     }
     if (this.visibleCells.selfAllocations) {
       data.selfAllocations = this.frame.allocations;
-    }
-
-    // Raw samples.
-    if (this.visibleCells.samples) {
-      data.samples = this.frame.samples;
     }
 
     // Frame name (function location or some meta information).
@@ -404,5 +444,25 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     e.preventDefault();
     e.stopPropagation();
     this.root.emit("link", this);
-  }
+  },
+
+  /**
+   * Find the leaf FrameNode for this tree item in an inverted tree (so the item
+   * below root, and called by this tree item)
+   *
+   * @return {FrameNode}
+   */
+  _getLeafAndStack: function() {
+    let nextItem = this;
+    let stack = [this.index];
+    while (nextItem.parent !== this.root) {
+      nextItem = nextItem.parent;
+      stack.push(nextItem.index);
+    }
+    let frame = nextItem.frame;
+    // Reverse the stack because tree-model creates it from leaf to root, and
+    // here we start somewhere between and work our way towards the leaf.
+    stack.reverse();
+    return { frame, stack };
+  },
 });

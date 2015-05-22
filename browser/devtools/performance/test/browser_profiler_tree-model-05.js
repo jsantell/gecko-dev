@@ -7,7 +7,7 @@
  */
 
 function test() {
-  let { ThreadNode } = devtools.require("devtools/shared/profiler/tree-model");
+  let { ThreadNode } = devtools.require("devtools/performance/tree-model");
 
   let root = new ThreadNode(gThread, { invertTree: true });
 
@@ -68,7 +68,7 @@ let gThread = synthesizeProfileForTest([{
     { location: "C" }
   ]
 }, {
-  time: 5 + 6,
+  time: 10,
   frames: [
     { location: "(root)" },
     { location: "A" },
@@ -76,7 +76,7 @@ let gThread = synthesizeProfileForTest([{
     { location: "D" }
   ]
 }, {
-  time: 5 + 6 + 7,
+  time: 15,
   frames: [
     { location: "(root)" },
     { location: "A" },

@@ -248,6 +248,7 @@ ThreadNode.prototype = {
           }
 
           // Build a stack of callers for this sample
+          console.log(`Pushing ${frameKey}:${frameIndex} to ${currentLeaf.key}:${currentLeaf.index}`);
           stack.push(frameIndex);
         }
 
@@ -506,6 +507,7 @@ FrameNode.prototype = {
 
     let currentCount = this._observedStackCount[stackIndex];
     this._observedStackCount[stackIndex] = (currentCount || 0) + 1;
+    console.log(this.key, `i:${this.index}`, this._observedStacks[stackIndex], this._observedStackCount[stackIndex]);
   },
 
   /**
@@ -549,6 +551,8 @@ FrameNode.prototype = {
    * All elements in these stacks are frameIndexes (numbers), not letters, this
    * is just for illustration.
    *
+   * @param {Array<number>} stack
+   * @return {?number}
    */
   getCallerPercentByStack: function(stack) {
     let observed, count;
@@ -558,12 +562,11 @@ FrameNode.prototype = {
         count = this._observedStackCount[i];
         break;
       }
-      observed = null;
     }
 
     // If we found a stack
     if (count != void 0) {
- 
+      return count / this.samples;
     } else {
       throw new Error("No stack history found, why would this happen?");
     }

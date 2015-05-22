@@ -36,7 +36,7 @@ const CHROME_LOCATIONS = [
 ].map(argify);
 
 function test() {
-  const { isContent, parseLocation } = devtools.require("devtools/performance/frame-utils");
+  const { foundInObservedStack, isContent, parseLocation } = devtools.require("devtools/performance/frame-utils");
 
   for (let frame of CONTENT_LOCATIONS) {
     ok(isContent.apply(null, frameify(frame)), `${frame[0]} should be considered a content frame.`);
@@ -85,6 +85,15 @@ function test() {
       is(parsed[FIELDS[j]], PARSED_CHROME[i][j], `${CHROME_LOCATIONS[i]} was parsed to correct ${FIELDS[j]}`);
     }
   }
+
+  // foundInObservedStack()
+
+  ok(foundInObservedStack([1,2,3,4,5], [1,2,3]),
+    "foundInObservedStack() identifies a substack that matches");
+  ok(!foundInObservedStack([1,2], [1,2,3]),
+    "foundInObservedStack() fails if substack matches, but longer than observed stack");
+  ok(!foundInObservedStack([1,3,4], [1,2,3]),
+    "foundInObservedStack() fails if stack histories do not match");
 
   finish();
 }
