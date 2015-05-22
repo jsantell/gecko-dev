@@ -128,6 +128,10 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     let displayedData = this.getDisplayedData();
     let frameInfo = this.frame.getInfo();
 
+    // When inverting call tree, leaf nodes (in this case, level 0 tree items)
+    // and their children must render costs differently
+    let isInvertedLeaf = this._level === 0 && this.inverted;
+
     if (this.visibleCells.duration) {
       var durationCell = this._createTimeCell(displayedData.totalDuration);
     }

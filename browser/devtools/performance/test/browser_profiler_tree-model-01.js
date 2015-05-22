@@ -129,8 +129,7 @@ let gThread = synthesizeProfileForTest([{
   frames: [
     { location: "(root)" },
     { location: "A" },
-    { location: "E" },
-    { location: "F" }
+    { location: "C" },
   ]
 }, {
   time: 20,
@@ -138,10 +137,5 @@ let gThread = synthesizeProfileForTest([{
     { location: "(root)" },
     { location: "A" },
     { location: "B" },
-    { location: "C" },
-    { location: "D" },
-    { location: "E" },
-    { location: "F" },
-    { location: "G" }
   ]
 }]);

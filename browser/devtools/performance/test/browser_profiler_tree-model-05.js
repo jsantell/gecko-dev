@@ -6,74 +6,87 @@
  * array.
  */
 
-let time = 1;
-
-let gThread = synthesizeProfileForTest([{
-  time: time++,
-  frames: [
-    { location: "(root)" },
-    { location: "A" },
-    { location: "B" },
-    { location: "C" }
-  ]
-}, {
-  time: time++,
-  frames: [
-    { location: "(root)" },
-    { location: "A" },
-    { location: "D" },
-    { location: "C" }
-  ]
-}, {
-  time: time++,
-  frames: [
-    { location: "(root)" },
-    { location: "A" },
-    { location: "E" },
-    { location: "C" }
-  ],
-}, {
-  time: time++,
-  frames: [
-    { location: "(root)" },
-    { location: "A" },
-    { location: "B" },
-    { location: "F" }
-  ]
-}]);
-
 function test() {
-  let { ThreadNode } = devtools.require("devtools/performance/tree-model");
+  let { ThreadNode } = devtools.require("devtools/shared/profiler/tree-model");
 
   let root = new ThreadNode(gThread, { invertTree: true });
 
-  is(root.calls.length, 2,
-     "Should get the 2 youngest frames, not the 1 oldest frame");
+  is(root.calls.length, 3,
+     "Should get the 3 youngest frames, not the 1 oldest frame");
+
+  /**
+   * Expected Tree
+   * +--total--+--self--+--tree-------------+
+   * |   50%   |   50%  |  C
+   * |   25%   |   0    |  -> B
+   * |   25%   |   0    |     -> A
+   * |   25%   |   0    |  -> A
+   *
+   * |   25%   |   25%  |  B
+   * |   25%   |   0    |  -> A
+   *
+   * |   25%   |   25%  |  D
+   * |   25%   |   0    |  -> B
+   * |   25%   |   0    |     -> A
+   */
 
   let C = getFrameNodePath(root, "C");
   ok(C, "Should have C as a child of the root.");
 
-  is(C.calls.length, 3,
-     "Should have 3 frames that called C.");
+  is(C.calls.length, 2, "Should have 2 frames that called C.");
   ok(getFrameNodePath(C, "B"), "B called C.");
-  ok(getFrameNodePath(C, "D"), "D called C.");
-  ok(getFrameNodePath(C, "E"), "E called C.");
+  ok(getFrameNodePath(C, "A"), "A called C.");
 
   is(getFrameNodePath(C, "B").calls.length, 1);
   ok(getFrameNodePath(C, "B > A"), "A called B called C");
-  is(getFrameNodePath(C, "D").calls.length, 1);
-  ok(getFrameNodePath(C, "D > A"), "A called D called C");
-  is(getFrameNodePath(C, "E").calls.length, 1);
-  ok(getFrameNodePath(C, "E > A"), "A called E called C");
+  is(getFrameNodePath(C, "A").calls.length, 0);
 
-  let F = getFrameNodePath(root, "F");
-  ok(F, "Should have F as a child of the root.");
+  let B = getFrameNodePath(root, "B");
+  ok(B, "Should have B as a child of the root.");
+  is(B.calls.length, 1, "Should have 1 frame that called B directly.");
+  ok(getFrameNodePath(B, "A"), "A called B.");
+  is(getFrameNodePath(B, "A").calls.length, 0);
 
-  is(F.calls.length, 1);
-  ok(getFrameNodePath(F, "B"), "B called F");
+  let D = getFrameNodePath(root, "D");
+  ok(D, "Should have D as a child of the root.");
 
-  is(getFrameNodePath(F, "B").calls.length, 1);
-  ok(getFrameNodePath(F, "B > A"), "A called B called F");
+  is(D.calls.length, 1, "Should have 1 frame that called D.");
+  ok(getFrameNodePath(D, "B"), "B called D.");
+
+  is(getFrameNodePath(D, "B").calls.length, 1);
+  ok(getFrameNodePath(D, "B > A"), "A called B called D");
 
   finish();
 }
+
+let gThread = synthesizeProfileForTest([{
+  time: 5,
+  frames: [
+    { location: "(root)" },
+    { location: "A" },
+    { location: "B" },
+    { location: "C" }
+  ]
+}, {
+  time: 5 + 6,
+  frames: [
+    { location: "(root)" },
+    { location: "A" },
+    { location: "B" },
+    { location: "D" }
+  ]
+}, {
+  time: 5 + 6 + 7,
+  frames: [
+    { location: "(root)" },
+    { location: "A" },
+    { location: "C" },
+  ]
+}, {
+  time: 20,
+  frames: [
+    { location: "(root)" },
+    { location: "A" },
+    { location: "B" },
+  ]
+}]);

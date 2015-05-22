@@ -180,6 +180,11 @@ ThreadNode.prototype = {
       let prevFrameKey;
       let isLeaf = mutableFrameKeyOptions.isLeaf = true;
 
+      // Track the stack of samples via frameIndex, so we can count
+      // how many times different stacks occur in leaf nodes.
+      let stack = [];
+      let currentLeaf = null;
+
       // Inflate the stack and build the FrameNode call tree directly.
       //
       // In the profiler data, each frame's stack is referenced by an index
@@ -241,6 +246,9 @@ ThreadNode.prototype = {
           if (frameKey === "") {
             continue;
           }
+
+          // Build a stack of callers for this sample
+          stack.push(frameIndex);
         }
 
         // If we shouldn't flatten the current frame into the previous one, advance a
@@ -256,9 +264,23 @@ ThreadNode.prototype = {
         frameNode._countSample(prevSampleTime, sampleTime, inflatedFrame.optimizations,
                                stringTable);
 
+        if (isLeaf) {
+          currentLeaf = frameNode;
+        }
+
         prevFrameKey = frameKey;
         prevCalls = frameNode.calls;
         isLeaf = mutableFrameKeyOptions.isLeaf = false;
+      }
+
+      // Count the stack found in the sample for the
+      // current leaf
+      if (currentLeaf) {
+        currentLeaf.addStack(stack);
+        // Let currentLeaf take ownership of stack, and create a new one
+        // for the next leaf node.
+        stack = [];
+        currentLeaf = null;
       }
 
       this.duration += sampleDuration;
@@ -451,6 +473,100 @@ FrameNode.prototype = {
    */
   getInfo: function() {
     return this._data || this._computeInfo();
+  },
+
+  /**
+   * Takes an array of frame indexes that occurred when this
+   * frame was a leaf node. Stores a reference and records a counter
+   * for that stack.
+   *
+   * Assume we have A -> B -> C in a sample, and this frame, a leaf node, is C.
+   * The passed in stack would be:
+   * [B, A]
+   *
+   * The stack elements are frame indexes, so if A=0, B=1, C=2, we'd have:
+   * [1, 0]
+   *
+   * @param {Array<number>} stack
+   */
+  addStack: function(stack) {
+    if (!this._observedStacks) {
+      this._observedStacks = [];
+    }
+    if (!this._observedStackCount) {
+      this._observedStackCount = [];
+    }
+
+    let stackIndex = this._observedStacks.indexOf(stack);
+
+    if (stackIndex === -1) {
+      stackIndex = this._observedStacks.length;
+      this._observedStacks.push(stack);
+    }
+
+    let currentCount = this._observedStackCount[stackIndex];
+    this._observedStackCount[stackIndex] = (currentCount || 0) + 1;
+  },
+
+  /**
+   * Based on a stack of ordered callers (most recent to oldest) by frame index,
+   * determine how many times this frame node was the leaf node while matching
+   * the stack history.
+   *
+   * If we have an inverted tree represented by
+   * +--total--+--self--+--tree-------------+
+   * |   50%   |   50%  |  C
+   * |   25%   |   0    |  -> B
+   * |   25%   |   0    |     -> A
+   * |   25%   |   0    |  -> A'
+   * |
+   * |   25%   |   25%  |  B
+   * |   25%   |   0    |  -> A
+   *
+   * |   25%   |   25%  |  D
+   * |   25%   |   0    |  -> B
+   * |   25%   |   0    |     -> A
+   *
+   * And this leaf node is "C". The other frame nodes pass in their stack
+   * to determine how many times this stack existed while C was a leaf node. We are
+   * only looking at the branch where "C" is the leaf.
+   *
+   * When B frame is trying to determine its total cost, it'll call C frame's `getCallerPercentByStack`,
+   * passing in it's current stack, being:
+   * [B]
+   * Which matches one of C's internal stacks in `this._observedStacks`, being [B, A], returning
+   * how many times that stack was observed divided by C's sample count.
+   *
+   * When A attempts the same, the stack passed in is
+   * [B, A]
+   * Which matches the same observed stack in `this._observedStacks` as B did, [B, A].
+   *
+   * For A', we have a different stack passed in:
+   * [A]
+   *
+   * Which matches a different observed stack, [A], getting a different observed count.
+   *
+   * All elements in these stacks are frameIndexes (numbers), not letters, this
+   * is just for illustration.
+   *
+   */
+  getCallerPercentByStack: function(stack) {
+    let observed, count;
+    for (let i = 0; i < this._observedStacks.length; i++) {
+      observed = this._observedStacks[i];
+      if (FrameUtils.foundInObservedStack(observed, stack)) {
+        count = this._observedStackCount[i];
+        break;
+      }
+      observed = null;
+    }
+
+    // If we found a stack
+    if (count != void 0) {
+ 
+    } else {
+      throw new Error("No stack history found, why would this happen?");
+    }
   },
 
   /**

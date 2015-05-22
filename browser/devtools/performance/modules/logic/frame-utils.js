@@ -244,6 +244,7 @@ function InflatedFrame(index, frameTable, stringTable, allocationsTable) {
 
   let frame = frameTable.data[index];
   let category = frame[CATEGORY_SLOT];
+  this.index = index;
   this.location = stringTable[frame[LOCATION_SLOT]];
   this.optimizations = frame[OPTIMIZATIONS_SLOT];
   this.line = frame[LINE_SLOT];
@@ -420,3 +421,34 @@ function isChromeScheme(location, i) {
 function isNumeric(c) {
   return c >= CHAR_CODE_0 && c <= CHAR_CODE_9;
 }
+
+/**
+ * Takes an observed stack of frameIndexes and checks to see if the passed
+ * in currentStack matches the same call history. currentStack can terminate
+ * before observedStack, as we check each caller one at time moving towards the root.
+ *
+ * [1,2,3] stack matches [1,2,3,4,5]
+ * [1,2,3] stack does not match [1,2]
+ * [1,2,3] stack does not match [1,3,4]
+ *
+ * @param {Array<number>} observedStack
+ * @param {Array<number>} currentStack
+ */
+function foundInObservedStack (observedStack, currentStack) {
+  let currentLength = currentStack.length;
+  let observedLength = observedStack.length;
+
+  // Abort in this simple case to save time
+  if (currentLength > observedLength) {
+    return false;
+  }
+
+  for (let i = 0; i < currentLength; i++) {
+    if (currentStack[i] !== observedStack[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+exports.foundInObservedStack = foundInObservedStack;
