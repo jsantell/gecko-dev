@@ -248,7 +248,6 @@ ThreadNode.prototype = {
           }
 
           // Build a stack of callers for this sample
-          console.log(`Pushing ${frameKey}:${frameIndex} to ${currentLeaf.key}:${currentLeaf.index}`);
           stack.push(frameIndex);
         }
 
@@ -377,6 +376,8 @@ ThreadNode.prototype = {
  * @param string frameKey
  *        The key associated with this frame. The key determines identity of
  *        the node.
+ * @param number index
+ *        The index of this frame in the original profiler data's frame table
  * @param string location
  *        The location of this function call. Note that this isn't sanitized,
  *        so it may very well (not?) include the function name, url, etc.
@@ -392,8 +393,9 @@ ThreadNode.prototype = {
  *        Whether or not this is a platform node that should appear as a
  *        generalized meta category or not.
  */
-function FrameNode(frameKey, { location, line, category, allocations, isContent }, isMetaCategory) {
+function FrameNode(frameKey, { index, location, line, category, allocations, isContent }, isMetaCategory) {
   this.key = frameKey;
+  this.index = index;
   this.location = location;
   this.line = line;
   this.category = category;
@@ -498,7 +500,7 @@ FrameNode.prototype = {
       this._observedStackCount = [];
     }
 
-    let stackIndex = this._observedStacks.indexOf(stack);
+    let stackIndex = indexOfEqualArray(this._observedStacks, stack);
 
     if (stackIndex === -1) {
       stackIndex = this._observedStacks.length;
@@ -507,7 +509,6 @@ FrameNode.prototype = {
 
     let currentCount = this._observedStackCount[stackIndex];
     this._observedStackCount[stackIndex] = (currentCount || 0) + 1;
-    console.log(this.key, `i:${this.index}`, this._observedStacks[stackIndex], this._observedStackCount[stackIndex]);
   },
 
   /**
@@ -555,12 +556,15 @@ FrameNode.prototype = {
    * @return {?number}
    */
   getCallerPercentByStack: function(stack) {
-    let observed, count;
+    let observed;
+    let count = 0;
+
+    // Iterate over to find all observedStacks that this partial stack matches
+    // and sum up the call counts
     for (let i = 0; i < this._observedStacks.length; i++) {
       observed = this._observedStacks[i];
       if (FrameUtils.foundInObservedStack(observed, stack)) {
-        count = this._observedStackCount[i];
-        break;
+        count += this._observedStackCount[i];
       }
     }
 
@@ -568,7 +572,7 @@ FrameNode.prototype = {
     if (count != void 0) {
       return count / this.samples;
     } else {
-      throw new Error("No stack history found, why would this happen?");
+      throw new Error(`No stack history found for FrameNode: ${this.key}`);
     }
   },
 
@@ -621,3 +625,35 @@ FrameNode.prototype = {
     return new JITOptimizations(this._optimizations, this._stringTable);
   }
 };
+
+/**
+ * Takes a source array of arrays and another array, `matcher`,
+ * and iterates over the array of arrays to attempt to find
+ * the index of the `matcher` in `arrays`.
+ *
+ * @param {Array<Array>} arrays
+ * @param {Array}
+ * @return {number}
+ */
+function indexOfEqualArray (arrays, matcher) {
+  let length = arrays.length;
+  let valid = false;
+  for (let i = 0; i < length; i++) {
+    let array = arrays[i];
+    let l = array.length;
+    if (l !== matcher.length) {
+      continue;
+    }
+    valid = true;
+    for (let j = 0; j < l; j++) {
+      if (array[j] !== matcher[j]) {
+        valid = false;
+      }
+    }
+
+    if (valid) {
+      return i;
+    }
+  }
+  return -1;
+}
