@@ -6,8 +6,8 @@
 const { Cc, Ci, Cu, Cr } = require("chrome");
 
 loader.lazyRequireGetter(this, "Services");
-loader.lazyRequireGetter(this, "CATEGORY_OTHER",
-  "devtools/performance/global", true);
+loader.lazyRequireGetter(this, "global",
+  "devtools/performance/global");
 
 // Character codes used in various parsing helper functions.
 const CHAR_CODE_A = "a".charCodeAt(0);
@@ -247,10 +247,14 @@ function InflatedFrame(index, frameTable, stringTable, allocationsTable) {
   this.optimizations = frame[OPTIMIZATIONS_SLOT];
   this.line = frame[LINE_SLOT];
   this.column = undefined;
-  this.category = category;
-  this.metaCategory = category || CATEGORY_OTHER;
   this.allocations = allocationsTable ? allocationsTable[index] : 0;
+  this.category = category;
   this.isContent = isContent(this);
+
+  // Since only C++ stack frames have associated category information,
+  // attempt to generate a useful category, fallback to the one provided
+  // by the profiling data, or fallback to an unknown category.
+  this.category = getCategory(this);
 };
 
 /**
@@ -284,7 +288,8 @@ InflatedFrame.prototype.getFrameKey = function getFrameKey(options) {
     // non-leaf platform frames don't give any meaningful context, and so we
     // can safely filter them out.
     options.isMetaCategoryOut = true;
-    return this.metaCategory;
+
+    return this.category;
   }
 
   // Return an empty string denoting that this frame should be skipped.
@@ -418,6 +423,33 @@ function isNumeric(c) {
   return c >= CHAR_CODE_0 && c <= CHAR_CODE_9;
 }
 
+/**
+ * Called during initialization, massages a category property
+ * if not content and lacks a category bit on the frame by checking
+ * location, special frame names, and falling back to a default.
+ */
+function getCategory (frame) {
+  if (frame.isContent) {
+    return;
+  }
+
+  // "EnterJIT" pseudoframes are special, not actually on the stack.
+  if (frame.location == "EnterJIT") {
+    return global.CATEGORY_JIT;
+  }
+
+  // If no category defined yet, check to see if its a Chrome JS category
+  if (!frame.category) {
+    if (/resource:\/\/gre\/modules\/devtools/.test(frame.location) ||
+        /resource:\/\/\/modules\/devtools/.test(frame.location)) {
+      return global.CATEGORY_DEVTOOLS;
+    }
+  }
+
+  return frame.category || global.CATEGORY_OTHER;
+}
+
+exports.getCategory = getCategory;
 exports.parseLocation = parseLocation;
 exports.isContent = isContent;
 exports.getInflatedFrameCache = getInflatedFrameCache;
