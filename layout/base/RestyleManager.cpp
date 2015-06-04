@@ -11,6 +11,7 @@
 #include <algorithm> // For std::max
 #include "RestyleManager.h"
 #include "mozilla/EventStates.h"
+#include "mozilla/dom/ProfileTimelineMarkerBinding.h"
 #include "nsLayoutUtils.h"
 #include "AnimationCommon.h" // For GetLayerAnimationInfo
 #include "FrameLayerBuilder.h"
@@ -62,6 +63,28 @@ FrameTagToString(const nsIFrame* aFrame)
   return result;
 }
 #endif
+
+class InvalidationTimelineMarker : public TimelineMarker
+{
+public:
+  InvalidationTimelineMarker(nsDocShell* aDocShell,
+                             const char* aType)
+    : TimelineMarker(aDocShell, "Invalidation", TRACING_TIMESTAMP)
+  {
+    mType = aType;
+  }
+
+  virtual const char* GetType() override { return mType; }
+
+  virtual void AddInvalidation(mozilla::dom::Sequence<JS::PersistentRooted<JSObject*>>& aInvalidations) override
+  {
+    aInvalidations.AppendElement(
+      JS::PersistentRooted<JSObject*>(GetJSContext(), GetStack()));
+  }
+
+private:
+  const char* mType;
+};
 
 RestyleManager::RestyleManager(nsPresContext* aPresContext)
   : mPresContext(aPresContext)
@@ -582,7 +605,7 @@ RestyleManager::StyleChangeReflow(nsIFrame* aFrame, nsChangeHint aHint)
 }
 
 void
-RestyleManager::AddSubtreeToOverflowTracker(nsIFrame* aFrame) 
+RestyleManager::AddSubtreeToOverflowTracker(nsIFrame* aFrame)
 {
   mOverflowChangedTracker.AddFrame(
       aFrame,
@@ -1829,6 +1852,18 @@ RestyleManager::PostRestyleEventInternal(bool aForLazyConstruction)
   // option here would be a dedicated boolean to track whether we need
   // to do so (set here and unset in ProcessPendingRestyles).
   presShell->GetDocument()->SetNeedStyleFlush();
+
+    // Gather stack information on style invalidation reasons
+    // for ProfileTimelineMarkers and pass them to
+    // mPendingRestyles to attach to the next "Styles" marker.
+    nsDocShell* docShell = static_cast<nsDocShell*>(mPresContext->GetDocShell());
+    if (docShell && docShell->GetRecordProfileTimelineMarkers()) {
+      JS::PersistentRooted<JSObject*> stack;
+      TimelineMarker::CaptureCurrentStack(stack);
+      if (stack.initialized()) {
+        mPendingRestyles.AddStyleInvalidation(stack);
+      }
+    }
 }
 
 void
@@ -4321,5 +4356,6 @@ ElementRestyler::RestyleResultToString(RestyleResult aRestyleResult)
   return result;
 }
 #endif
+
 
 } // namespace mozilla

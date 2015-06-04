@@ -80,6 +80,18 @@ MarkerDetails.prototype = {
     elements.push(MarkerUtils.DOM.buildDuration(this._document, marker));
     MarkerUtils.DOM.buildFields(this._document, marker).forEach(f => elements.push(f));
 
+    // If we have invalidations on this marker, render those
+    // stack traces.
+    if (marker.invalidations && marker.invalidations.length) {
+      marker.invalidations.forEach(stack => {
+        // Handle other types of invalidations (Reflow) in the future
+        let type = marker.name === "Styles" ? "styleInvalidation" : "";
+        elements.push(MarkerUtils.DOM.buildStackTrace(this._document, {
+          frameIndex: stack, frames, type
+        }));
+      });
+    }
+
     // Build a stack element -- and use the "startStack" label if
     // we have both a startStack and endStack.
     if (marker.stack) {

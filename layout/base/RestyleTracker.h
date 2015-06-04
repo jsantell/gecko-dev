@@ -261,6 +261,12 @@ public:
                          nsChangeHint aMinChangeHint);
 
   /**
+   * Add a TimelineMarker stack for tracking where style invalidation
+   * occurred.
+   */
+  void AddStyleInvalidation(JS::PersistentRooted<JSObject*>& stack);
+
+  /**
    * Process the restyles we've been tracking.
    */
   void DoProcessRestyles();
@@ -376,6 +382,10 @@ private:
   // flag.  We need this to avoid enumerating the hashtable looking
   // for such entries when we can't possibly have any.
   bool mHaveLaterSiblingRestyles;
+
+  // Sequence of style invalidations observed since last style
+  // recalculation, for TimelineMarkers.
+  mozilla::dom::Sequence<JS::PersistentRooted<JSObject*>> mInvalidations;
 };
 
 inline bool

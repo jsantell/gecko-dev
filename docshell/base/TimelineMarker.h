@@ -50,6 +50,8 @@ public:
                           mozilla::dom::ProfileTimelineMarker& aMarker)
   {}
 
+  virtual const char* GetType() { return ""; }
+
   virtual void AddLayerRectangles(
       mozilla::dom::Sequence<mozilla::dom::ProfileTimelineLayerRect>&)
   {
@@ -69,18 +71,29 @@ public:
     return nullptr;
   }
 
-protected:
-  void CaptureStack()
+  JSContext* GetJSContext()
+  {
+    return nsContentUtils::GetCurrentJSContext();
+  }
+
+  static void CaptureCurrentStack(
+      JS::PersistentRooted<JSObject*>& aStackTrace)
   {
     JSContext* ctx = nsContentUtils::GetCurrentJSContext();
     if (ctx) {
       JS::RootedObject stack(ctx);
       if (JS::CaptureCurrentStack(ctx, &stack)) {
-        mStackTrace.init(ctx, stack.get());
+        aStackTrace.init(ctx, stack.get());
       } else {
         JS_ClearPendingException(ctx);
       }
     }
+  }
+
+protected:
+  void CaptureStack()
+  {
+    TimelineMarker::CaptureCurrentStack(mStackTrace);
   }
 
 private:

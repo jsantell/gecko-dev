@@ -41,4 +41,5 @@ dictionary ProfileTimelineMarker {
   sequence<ProfileTimelineLayerRect> rectangles;
   /* For Style markers. */
   DOMString restyleHint;
+  sequence<object>? invalidations;
 };

@@ -99,26 +99,47 @@ struct RestyleCollector {
 class RestyleTimelineMarker : public TimelineMarker
 {
 public:
+  // Start tracing Styles
   RestyleTimelineMarker(nsDocShell* aDocShell,
-                        TracingMetadata aMetaData,
-                        nsRestyleHint aRestyleHint)
-    : TimelineMarker(aDocShell, "Styles", aMetaData)
+                        nsRestyleHint aRestyleHint,
+                        mozilla::dom::Sequence<JS::PersistentRooted<JSObject*>>& stacks)
+    : TimelineMarker(aDocShell, "Styles", TRACING_INTERVAL_START)
   {
     if (aRestyleHint) {
       mRestyleHint.AssignWithConversion(RestyleManager::RestyleHintToString(aRestyleHint));
     }
+    // Transfer all current style invalidations from RestyleTracker
+    // to this marker, but still hold via PersistentRooted
+    mStacks.SwapElements(stacks);
   }
+
+  // End tracing Styles
+  RestyleTimelineMarker(nsDocShell* aDocShell)
+    : TimelineMarker(aDocShell, "Styles", TRACING_INTERVAL_END)
+  {}
 
   virtual void AddDetails(JSContext* aCx,
                           mozilla::dom::ProfileTimelineMarker& aMarker) override
   {
     if (GetMetaData() == TRACING_INTERVAL_START) {
       aMarker.mRestyleHint.Construct(mRestyleHint);
+
+      // Move over the rooted stack objects to an unrooted
+      // stacks sequence, and append them to aMarker.
+      mozilla::dom::Sequence<JSObject*> unrootedStacks;
+      for (uint32_t i = 0; i < mStacks.Length(); i++) {
+        unrootedStacks.AppendElement(mStacks[i].get());
+        mStacks.RemoveElementAt(i);
+        --i;
+      }
+      printf("Constructing invalidations %lu", unrootedStacks.Length());
+      aMarker.mInvalidations.Construct(unrootedStacks);
     }
   }
 
 private:
   nsAutoString mRestyleHint;
+  mozilla::dom::Sequence<JS::PersistentRooted<JSObject*>> mStacks;
 };
 
 static PLDHashOperator
@@ -355,8 +376,8 @@ RestyleTracker::DoProcessRestyles()
         if (isTimelineRecording) {
           mozilla::UniquePtr<TimelineMarker> marker =
             MakeUnique<RestyleTimelineMarker>(docShell,
-                                              TRACING_INTERVAL_START,
-                                              data->mRestyleHint);
+                                              data->mRestyleHint,
+                                              mInvalidations);
           docShell->AddProfileTimelineMarker(Move(marker));
         }
 
@@ -371,9 +392,7 @@ RestyleTracker::DoProcessRestyles()
 
         if (isTimelineRecording) {
           mozilla::UniquePtr<TimelineMarker> marker =
-            MakeUnique<RestyleTimelineMarker>(docShell,
-                                              TRACING_INTERVAL_END,
-                                              data->mRestyleHint);
+            MakeUnique<RestyleTimelineMarker>(docShell);
           docShell->AddProfileTimelineMarker(Move(marker));
         }
       }
@@ -419,8 +438,8 @@ RestyleTracker::DoProcessRestyles()
           if (isTimelineRecording) {
             mozilla::UniquePtr<TimelineMarker> marker =
               MakeUnique<RestyleTimelineMarker>(docShell,
-                                                TRACING_INTERVAL_START,
-                                                currentRestyle->mRestyleHint);
+                                                currentRestyle->mRestyleHint,
+                                                mInvalidations);
             docShell->AddProfileTimelineMarker(Move(marker));
           }
 
@@ -430,9 +449,7 @@ RestyleTracker::DoProcessRestyles()
 
           if (isTimelineRecording) {
             mozilla::UniquePtr<TimelineMarker> marker =
-              MakeUnique<RestyleTimelineMarker>(docShell,
-                                                TRACING_INTERVAL_END,
-                                                currentRestyle->mRestyleHint);
+              MakeUnique<RestyleTimelineMarker>(docShell);
             docShell->AddProfileTimelineMarker(Move(marker));
           }
         }
@@ -504,5 +521,12 @@ RestyleTracker::AddRestyleRootsIfAwaitingRestyle(
     }
   }
 }
+
+void
+RestyleTracker::AddStyleInvalidation(JS::PersistentRooted<JSObject*>& stack)
+{
+  mInvalidations.AppendElement(stack);
+}
+
 
 } // namespace mozilla

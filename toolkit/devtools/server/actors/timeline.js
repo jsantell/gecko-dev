@@ -195,6 +195,11 @@ let TimelineActor = exports.TimelineActor = protocol.ActorClass({
     // doesn't understand that the Debugger.Frame object is safe to
     // use from chrome.  See Tutorial-Alloc-Log-Tree.md.
     for (let marker of markers) {
+      if (marker.invalidations && marker.invalidations.length) {
+        for (let i = 0; i < marker.invalidations.length; i++) {
+          marker.invalidations[i] = this._stackFrames.addFrame(Cu.waiveXrays(marker.invalidations[i]));
+        }
+      }
       if (marker.stack) {
         marker.stack = this._stackFrames.addFrame(Cu.waiveXrays(marker.stack));
       }
