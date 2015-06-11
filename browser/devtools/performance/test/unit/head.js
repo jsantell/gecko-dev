@@ -5,6 +5,7 @@
 const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
 let { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+let { console } = devtools.require("resource://gre/modules/devtools/Console.jsm");
 const RecordingUtils = devtools.require("devtools/performance/recording-utils");
 
 /**
