@@ -259,14 +259,12 @@ function getOrAddInflatedFrame(cache, index, frameTable, stringTable, allocation
  */
 function InflatedFrame(index, frameTable, stringTable, allocationsTable) {
   const LOCATION_SLOT = frameTable.schema.location;
-  const OPTIMIZATIONS_SLOT = frameTable.schema.optimizations;
   const LINE_SLOT = frameTable.schema.line;
   const CATEGORY_SLOT = frameTable.schema.category;
 
   let frame = frameTable.data[index];
   let category = frame[CATEGORY_SLOT];
   this.location = stringTable[frame[LOCATION_SLOT]];
-  this.optimizations = frame[OPTIMIZATIONS_SLOT];
   this.line = frame[LINE_SLOT];
   this.column = undefined;
   this.allocations = allocationsTable ? allocationsTable[index] : 0;
@@ -280,7 +278,7 @@ function InflatedFrame(index, frameTable, stringTable, allocationsTable) {
   // attempt to generate a useful category, fallback to the one provided
   // by the profiling data, or fallback to an unknown category.
   computeIsContentAndCategory(this);
-};
+}
 
 /**
  * Gets the frame key (i.e., equivalence group) according to options. Content

@@ -3,6 +3,9 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
+loader.lazyRequireGetter(this, "inflateThread",
+  "devtools/performance/thread", true);
+
 // An outcome of an OptimizationAttempt that is considered successful.
 const SUCCESSFUL_OUTCOMES = [
   "GenericSuccess", "Inlined", "DOM", "Monomorphic", "Polymorphic"
@@ -207,7 +210,7 @@ const JITOptimizations = function (rawSites, stringTable) {
     };
   }
 
-  this.optimizationSites = sites.sort((a, b) => b.samples - a.samples);;
+  this.optimizationSites = sites.sort((a, b) => b.samples - a.samples);
 };
 
 /**
@@ -239,5 +242,18 @@ function maybeTypeset(typeset, stringTable) {
   });
 }
 
+function createTierDataFromThreadNode (threadNode, options={}) {
+  let inflatedThread = inflateThread(thread);
+  let data = inflatedThread.getData(options);
+  let sampleCount = data.samples.length;
+  let sample;
+
+  for (let i = 0; i < sampleCount; i++) {
+    sample = data.samples[i];
+    if (sample.optimizations
+  }
+}
+
+exports.createTierDataFromThreadNode = createTierDataFromThreadNode;
 exports.OptimizationSite = OptimizationSite;
 exports.JITOptimizations = JITOptimizations;
