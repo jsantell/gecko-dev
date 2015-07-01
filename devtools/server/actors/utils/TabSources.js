@@ -105,7 +105,6 @@ TabSources.prototype = {
               isInlineSource, contentType }) {
     dbg_assert(source || (originalUrl && generatedSource),
                "TabSources.prototype.source needs an originalUrl or a source");
-
     if (source) {
       // If a source is passed, we are creating an actor for a real
       // source, which may or may not be sourcemapped.
@@ -234,7 +233,7 @@ TabSources.prototype = {
       }
     }
 
-    throw new Error('getSourceByURL: could not find source for ' + url);
+    return null;
   },
 
   /**
@@ -533,6 +532,7 @@ TabSources.prototype = {
     // Forcefully set the sourcemap cache. This will be used even if
     // sourcemaps are disabled.
     this._sourceMapCache[url] = resolve(aMap);
+    this.emit("updatedSource", this.getSourceActor(aSource));
   },
 
   /**

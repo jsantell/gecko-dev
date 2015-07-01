@@ -9,7 +9,9 @@
 var { Ci, Cu } = require("chrome");
 var Services = require("Services");
 var promise = require("promise");
-var { ActorPool, createExtraActors, appendExtraActors } = require("devtools/server/actors/common");
+var {
+  ActorPool, createExtraActors, appendExtraActors, GeneratedLocation
+} = require("devtools/server/actors/common");
 var { DebuggerServer } = require("devtools/server/main");
 var DevToolsUtils = require("devtools/shared/DevToolsUtils");
 var { dbg_assert } = DevToolsUtils;
@@ -1115,6 +1117,33 @@ TabActor.prototype = {
     });
   },
 
+  onResolveLocation: function (aRequest) {
+    let url = aRequest.url;
+    let line = aRequest.line;
+    let column = aRequest.column || 0;
+    let actor = this.sources.getSourceActorByURL(url);
+
+    if (!actor) {
+      return { from: this.actorID, type: "resolveLocation", status: "SOURCE_NOT_FOUND" };
+    }
+
+    // Get the generated source actor if this is source mapped
+    let generatedActor = actor.generatedSource ?
+                         this.sources.createNonSourceMappedActor(actor.generatedSource) :
+                         actor;
+    return this.sources.getOriginalLocation(new GeneratedLocation(
+      generatedActor,
+      aRequest.line,
+      aRequest.column || 0
+    )).then(loc => {
+      if (loc.originalLine == null) {
+        return { from: this.actorID, type: "resolveLocation", status: "MAP_NOT_FOUND" };
+      }
+      loc = loc.toJSON();
+      return { from: this.actorID, url: loc.source.url, column: loc.column, line: loc.line };
+    });
+  },
+
   _onWorkerActorListChanged: function () {
     this._workerActorList.onListChanged = null;
     this.conn.sendActorEvent(this.actorID, "workerListChanged");
@@ -1839,7 +1868,8 @@ TabActor.prototype.requestTypes = {
   "reconfigure": TabActor.prototype.onReconfigure,
   "switchToFrame": TabActor.prototype.onSwitchToFrame,
   "listFrames": TabActor.prototype.onListFrames,
-  "listWorkers": TabActor.prototype.onListWorkers
+  "listWorkers": TabActor.prototype.onListWorkers,
+  "resolveLocation": TabActor.prototype.onResolveLocation,
 };
 
 exports.TabActor = TabActor;

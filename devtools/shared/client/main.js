@@ -2137,7 +2137,7 @@ ThreadClient.prototype = {
     telemetry: "PROTOTYPESANDPROPERTIES"
   }),
 
-  events: ["newSource"]
+  events: ["newSource", "updatedSource"]
 };
 
 eventSource(ThreadClient.prototype);

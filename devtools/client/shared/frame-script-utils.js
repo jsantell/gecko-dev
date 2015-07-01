@@ -115,11 +115,13 @@ addMessageListener("devtools:test:profiler", function ({ data: { method, args, i
 });
 
 
-// To eval in content, look at `evalInDebuggee` in the head.js of canvasdebugger
+// To eval in content, look at `evalInDebuggee` in framework/test/shared-head.js
 // for an example.
 addMessageListener("devtools:test:eval", function ({ data }) {
   sendAsyncMessage("devtools:test:eval:response", {
-    value: content.eval(data.script),
+    // stringify/parse incase we get an object that cannot be serialized in response
+    // from the script.
+    value: JSON.parse(JSON.stringify(content.eval(data.script))),
     id: data.id
   });
 });

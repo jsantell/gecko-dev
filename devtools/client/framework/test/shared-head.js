@@ -195,3 +195,61 @@ function unloadToolbox (toolbox) {
     gBrowser.removeCurrentTab();
   });
 }
+
+function initTool (url, tool="jsdebugger") {
+  return Task.spawn(function *() {
+    let toolbox = yield loadToolbox(url);
+    let target = toolbox.target;
+    let panel = yield toolbox.selectTool(tool);
+    return { target, panel, toolbox };
+  });
+}
+
+function reload (target, waitForTargetEvent="navigate") {
+  target.activeTab.reload();
+  return once(target, waitForTargetEvent);
+}
+
+/**
+ * Takes a string `script` and evaluates it directly in the content in
+ * potentially a different process.
+ */
+
+let MM_INC = 0;
+function evalInDebuggee (mm, script) {
+  let deferred = promise.defer();
+
+  let id = MM_INC++;
+  mm.sendAsyncMessage("devtools:test:eval", { script, id });
+  mm.addMessageListener("devtools:test:eval:response", handler);
+
+  function handler ({ data }) {
+    if (id !== data.id) {
+      return;
+    }
+
+    mm.removeMessageListener("devtools:test:eval:response", handler);
+    deferred.resolve(data.value);
+  }
+
+  return deferred.promise;
+}
+
+/**
+ * Waits until a predicate returns true.
+ *
+ * @param function predicate
+ *        Invoked once in a while until it returns true.
+ * @param number interval [optional]
+ *        How often the predicate is invoked, in milliseconds.
+ */
+function waitUntil(predicate, interval = 10) {
+  if (predicate()) {
+    return promise.resolve(true);
+  }
+  let deferred = promise.defer();
+  setTimeout(function() {
+    waitUntil(predicate).then(() => deferred.resolve(true));
+  }, interval);
+  return deferred.promise;
+}

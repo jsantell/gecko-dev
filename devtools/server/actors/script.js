@@ -439,7 +439,7 @@ function ThreadActor(aParent, aGlobal)
 
   this._allEventsListener = this._allEventsListener.bind(this);
   this.onNewGlobal = this.onNewGlobal.bind(this);
-  this.onNewSource = this.onNewSource.bind(this);
+  this.onSourceEvent = this.onSourceEvent.bind(this);
   this.uncaughtExceptionHook = this.uncaughtExceptionHook.bind(this);
   this.onDebuggerStatement = this.onDebuggerStatement.bind(this);
   this.onNewScript = this.onNewScript.bind(this);
@@ -585,6 +585,8 @@ ThreadActor.prototype = {
     this._sourceActorStore = null;
 
     events.off(this._parent, "window-ready", this._onWindowReady);
+    this.sources.off("newSource", this.onSourceEvent);
+    this.sources.off("updatedSource", this.onSourceEvent);
     this.clearDebuggees();
     this.conn.removeActorPool(this._threadLifetimePool);
     this._threadLifetimePool = null;
@@ -625,9 +627,8 @@ ThreadActor.prototype = {
 
     update(this._options, aRequest.options || {});
     this.sources.reconfigure(this._options);
-    this.sources.on('newSource', (name, source) => {
-      this.onNewSource(source);
-    });
+    this.sources.on("newSource", this.onSourceEvent);
+    this.sources.on("updatedSource", this.onSourceEvent);
 
     // Initialize an event loop stack. This can't be done in the constructor,
     // because this.conn is not yet initialized by the actor pool at that time.
@@ -1892,10 +1893,10 @@ ThreadActor.prototype = {
     this._addSource(aScript.source);
   },
 
-  onNewSource: function (aSource) {
+  onSourceEvent: function (name, aSource) {
     this.conn.send({
       from: this.actorID,
-      type: "newSource",
+      type: name,
       source: aSource.form()
     });
   },
@@ -1934,7 +1935,7 @@ ThreadActor.prototype = {
     let sourceActor = this.sources.createNonSourceMappedActor(aSource);
 
     // Go ahead and establish the source actors for this script, which
-    // fetches sourcemaps if available and sends onNewSource
+    // fetches sourcemaps if available and sends "newSource"
     // notifications.
     //
     // We need to use unsafeSynchronize here because if the page is being reloaded,
@@ -2017,7 +2018,7 @@ ThreadActor.prototype.requestTypes = {
   "releaseMany": ThreadActor.prototype.onReleaseMany,
   "sources": ThreadActor.prototype.onSources,
   "threadGrips": ThreadActor.prototype.onThreadGrips,
-  "prototypesAndProperties": ThreadActor.prototype.onPrototypesAndProperties
+  "prototypesAndProperties": ThreadActor.prototype.onPrototypesAndProperties,
 };
 
 exports.ThreadActor = ThreadActor;
@@ -2200,10 +2201,10 @@ SourceActor.prototype = {
   _addonPath: null,
 
   get isSourceMapped() {
-    return !this.isInlineSource && (
+    return !!(!this.isInlineSource && (
       this._originalURL || this._generatedSource ||
         this.threadActor.sources.isPrettyPrinted(this.url)
-    );
+    ));
   },
 
   get isInlineSource() {
@@ -2243,10 +2244,12 @@ SourceActor.prototype = {
     return {
       actor: this.actorID,
       url: this.url ? this.url.split(" -> ").pop() : null,
+      generatedUrl: this.generatedSource ? this.generatedSource.url : null,
       addonID: this._addonID,
       addonPath: this._addonPath,
       isBlackBoxed: this.threadActor.sources.isBlackBoxed(this.url),
       isPrettyPrinted: this.threadActor.sources.isPrettyPrinted(this.url),
+      isSourceMapped: this.isSourceMapped,
       introductionUrl: introductionUrl ? introductionUrl.split(" -> ").pop() : null,
       introductionType: source ? source.introductionType : null
     };

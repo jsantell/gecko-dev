@@ -411,6 +411,20 @@ TabTarget.prototype = {
     return !!this._isThreadPaused;
   },
 
+  resolveLocation: function (loc) {
+    let deferred = promise.defer();
+
+    this.client.request({
+      to: this._form.actor,
+      type: "resolveLocation",
+      line: loc.line,
+      column: loc.column,
+      url: loc.url
+    }, deferred.resolve);
+
+    return deferred.promise;
+  },
+
   /**
    * Adds remote protocol capabilities to the target, so that it can be used
    * for tools that support the Remote Debugging Protocol even for local
@@ -546,6 +560,13 @@ TabTarget.prototype = {
       this.emit("frame-update", aPacket);
     };
     this.client.addListener("frameUpdate", this._onFrameUpdate);
+
+    this._onSourceChange = (name, source) => {
+      this.emit("source-updated", source);
+    };
+
+    this.client.addListener("updatedSource", this._onSourceChange);
+    this.client.addListener("newSource", this._onSourceChange);
   },
 
   /**
@@ -556,6 +577,8 @@ TabTarget.prototype = {
     this.client.removeListener("tabNavigated", this._onTabNavigated);
     this.client.removeListener("tabDetached", this._onTabDetached);
     this.client.removeListener("frameUpdate", this._onFrameUpdate);
+    this.client.removeListener("updatedSource", this._onSourceChange);
+    this.client.removeListener("newSource", this._onSourceChange);
   },
 
   /**
