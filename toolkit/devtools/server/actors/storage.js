@@ -20,10 +20,10 @@ const {DebuggerServer} = require("devtools/server/main");
 const Services = require("Services");
 const promise = require("promise");
 
-loader.lazyImporter(this, "OS", "resource://gre/modules/osfile.jsm");
-loader.lazyImporter(this, "Sqlite", "resource://gre/modules/Sqlite.jsm");
-loader.lazyImporter(this, "LayoutHelpers",
-                    "resource://gre/modules/devtools/LayoutHelpers.jsm");
+loader.lazyDefine(this, "OS", "resource://gre/modules/osfile.jsm", true);
+loader.lazyDefine(this, "Sqlite", "resource://gre/modules/Sqlite.jsm", true);
+loader.lazyDefine(this, "LayoutHelpers",
+                    "resource://gre/modules/devtools/LayoutHelpers.jsm", true);
 
 let gTrackedMessageManager = new Map();
 

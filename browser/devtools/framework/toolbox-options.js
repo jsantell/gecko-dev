@@ -7,12 +7,12 @@
 const {Cu, Cc, Ci} = require("chrome");
 const Services = require("Services");
 const promise = require("promise");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm");
+const { devtools: loader } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+loader.lazyDefine(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm", true);
 
 exports.OptionsPanel = OptionsPanel;
 
-XPCOMUtils.defineLazyGetter(this, "l10n", function() {
+loader.lazyDefine(this, "l10n", function() {
   let bundle = Services.strings.createBundle("chrome://browser/locale/devtools/toolbox.properties");
   let l10n = function(aName, ...aArgs) {
     try {

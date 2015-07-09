@@ -13,22 +13,22 @@ let EventEmitter = require("devtools/toolkit/event-emitter");
 let clipboard = require("sdk/clipboard");
 let {HostType} = require("devtools/framework/toolbox").Toolbox;
 
-loader.lazyGetter(this, "MarkupView", () => require("devtools/markupview/markup-view").MarkupView);
-loader.lazyGetter(this, "HTMLBreadcrumbs", () => require("devtools/inspector/breadcrumbs").HTMLBreadcrumbs);
-loader.lazyGetter(this, "ToolSidebar", () => require("devtools/framework/sidebar").ToolSidebar);
-loader.lazyGetter(this, "SelectorSearch", () => require("devtools/inspector/selector-search").SelectorSearch);
+loader.lazyDefine(this, "MarkupView", "devtools/markupview/markup-view", true);
+loader.lazyDefine(this, "HTMLBreadcrumbs", "devtools/inspector/breadcrumbs", true);
+loader.lazyDefine(this, "ToolSidebar", "devtools/framework/sidebar", true);
+loader.lazyDefine(this, "SelectorSearch", "devtools/inspector/selector-search", true);
 
-loader.lazyGetter(this, "strings", () => {
+loader.lazyDefine(this, "strings", () => {
   return Services.strings.createBundle("chrome://browser/locale/devtools/inspector.properties");
 });
-loader.lazyGetter(this, "toolboxStrings", () => {
+loader.lazyDefine(this, "toolboxStrings", () => {
   return Services.strings.createBundle("chrome://browser/locale/devtools/toolbox.properties");
 });
-loader.lazyGetter(this, "clipboardHelper", () => {
+loader.lazyDefine(this, "clipboardHelper", () => {
   return Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper);
 });
 
-loader.lazyImporter(this, "CommandUtils", "resource:///modules/devtools/DeveloperToolbar.jsm");
+loader.lazyDefine(this, "CommandUtils", "resource:///modules/devtools/DeveloperToolbar.jsm");
 
 const LAYOUT_CHANGE_TIMER = 250;
 

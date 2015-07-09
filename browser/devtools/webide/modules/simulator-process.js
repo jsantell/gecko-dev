@@ -13,7 +13,7 @@ const promise = require("promise");
 const Subprocess = require("sdk/system/child_process/subprocess");
 const { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
 
-loader.lazyGetter(this, "OS", () => {
+loader.lazyDefine(this, "OS", () => {
   const Runtime = require("sdk/system/runtime");
   switch (Runtime.OS) {
     case "Darwin":

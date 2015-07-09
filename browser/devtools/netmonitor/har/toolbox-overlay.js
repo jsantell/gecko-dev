@@ -6,7 +6,7 @@
 const { Cu, Ci } = require("chrome");
 const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 
-loader.lazyRequireGetter(this, "HarAutomation", "devtools/netmonitor/har/har-automation", true);
+loader.lazyDefine(this, "HarAutomation", "devtools/netmonitor/har/har-automation", true);
 
 // Map of all created overlays. There is always one instance of
 // an overlay per Toolbox instance (i.e. one per browser tab).

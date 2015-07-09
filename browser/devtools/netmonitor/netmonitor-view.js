@@ -5,15 +5,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
-
-XPCOMUtils.defineLazyGetter(this, "HarExporter", function() {
-  return devtools.require("devtools/netmonitor/har/har-exporter.js").HarExporter;
-});
-
-XPCOMUtils.defineLazyGetter(this, "NetworkHelper", function() {
-  return devtools.require("devtools/toolkit/webconsole/network-helper");
-});
+devtools.lazyDefine(this, "HarExporter", "devtools/netmonitor/har/har-exporter", true);
+devtools.lazyDefine(this, "NetworkHelper", "devtools/toolkit/webconsole/network-helper");
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const EPSILON = 0.001;

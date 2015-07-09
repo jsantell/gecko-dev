@@ -7,7 +7,7 @@
  * Utility functions for collapsing markers into a waterfall.
  */
 
-loader.lazyRequireGetter(this, "MarkerUtils",
+loader.lazyDefine(this, "MarkerUtils",
   "devtools/performance/marker-utils");
 
 /**

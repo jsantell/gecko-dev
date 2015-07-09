@@ -8,8 +8,8 @@ const protocol = require("devtools/server/protocol");
 const { method, RetVal, Arg, types } = protocol;
 const { Memory } = require("devtools/toolkit/shared/memory");
 const { actorBridge } = require("devtools/server/actors/common");
-loader.lazyRequireGetter(this, "events", "sdk/event/core");
-loader.lazyRequireGetter(this, "StackFrameCache",
+loader.lazyDefine(this, "events", "sdk/event/core");
+loader.lazyDefine(this, "StackFrameCache",
                          "devtools/server/actors/utils/stack", true);
 
 types.addDictType("AllocationsRecordingOptions", {

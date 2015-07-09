@@ -351,10 +351,12 @@ let loader = {
   lazyServiceGetter: function () {
     throw new Error("Can't import XPCOM service from worker thread!");
   },
-  lazyRequireGetter: function (obj, property, module, destructure) {
+  lazyRequireGetter: (...args) => loader.lazyDefine(...args),
+  lazyDefine: function (obj, property, module, destructure) {
     Object.defineProperty(obj, property, {
-      get: () => destructure ? worker.require(module)[property]
-                             : worker.require(module || property)
+      get: () => typeof module === "function" ? module() :
+                 destructure ? worker.require(module)[property] :
+                 worker.require(module || property);
     });
   }
 };

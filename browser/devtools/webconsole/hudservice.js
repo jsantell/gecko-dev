@@ -11,16 +11,16 @@ const {Cc, Ci, Cu} = require("chrome");
 let WebConsoleUtils = require("devtools/toolkit/webconsole/utils").Utils;
 let Heritage = require("sdk/core/heritage");
 
-loader.lazyGetter(this, "Telemetry", () => require("devtools/shared/telemetry"));
-loader.lazyGetter(this, "WebConsoleFrame", () => require("devtools/webconsole/webconsole").WebConsoleFrame);
-loader.lazyImporter(this, "promise", "resource://gre/modules/Promise.jsm", "Promise");
-loader.lazyImporter(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm");
-loader.lazyImporter(this, "devtools", "resource://gre/modules/devtools/Loader.jsm");
-loader.lazyImporter(this, "Services", "resource://gre/modules/Services.jsm");
-loader.lazyImporter(this, "DebuggerServer", "resource://gre/modules/devtools/dbg-server.jsm");
-loader.lazyImporter(this, "DebuggerClient", "resource://gre/modules/devtools/dbg-client.jsm");
-loader.lazyGetter(this, "showDoorhanger", () => require("devtools/shared/doorhanger").showDoorhanger);
-loader.lazyRequireGetter(this, "sourceUtils", "devtools/shared/source-utils");
+loader.lazyDefine(this, "Telemetry", "devtools/shared/telemetry");
+loader.lazyDefine(this, "WebConsoleFrame", "devtools/webconsole/webconsole", true);
+loader.lazyDefine(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm", true);
+loader.lazyDefine(this, "devtools", "resource://gre/modules/devtools/Loader.jsm", true);
+loader.lazyDefine(this, "Services", "resource://gre/modules/Services.jsm", true);
+loader.lazyDefine(this, "DebuggerServer", "resource://gre/modules/devtools/dbg-server.jsm", true);
+loader.lazyDefine(this, "DebuggerClient", "resource://gre/modules/devtools/dbg-client.jsm", true);
+loader.lazyDefine(this, "showDoorhanger", "devtools/shared/doorhanger", true);
+loader.lazyDefine(this, "sourceUtils", "devtools/shared/source-utils");
+loader.lazyDefine(this, "promise", () => require("resource://gre/modules/Promise.jsm").Promise);
 
 const STRINGS_URI = "chrome://browser/locale/devtools/webconsole.properties";
 let l10n = new WebConsoleUtils.l10n(STRINGS_URI);

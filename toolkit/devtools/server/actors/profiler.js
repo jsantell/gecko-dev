@@ -25,7 +25,7 @@ let DEFAULT_PROFILER_OPTIONS = {
  */
 let gProfilerConsumers = 0;
 
-loader.lazyGetter(this, "nsIProfilerModule", () => {
+loader.lazyDefine(this, "nsIProfilerModule", () => {
   return Cc["@mozilla.org/tools/profiler;1"].getService(Ci.nsIProfiler);
 });
 

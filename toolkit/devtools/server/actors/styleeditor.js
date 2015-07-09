@@ -19,7 +19,7 @@ const {Arg, Option, method, RetVal, types} = protocol;
 const {LongStringActor, ShortLongString} = require("devtools/server/actors/string");
 const {fetch} = require("devtools/toolkit/DevToolsUtils");
 
-loader.lazyGetter(this, "CssLogic", () => require("devtools/styleinspector/css-logic").CssLogic);
+loader.lazyDefine(this, "CssLogic", "devtools/styleinspector/css-logic", true);
 
 let TRANSITION_CLASS = "moz-styleeditor-transitioning";
 let TRANSITION_DURATION_MS = 500;

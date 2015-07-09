@@ -7,9 +7,8 @@
 "use strict";
 
 const {Cc, Ci} = require("chrome");
-loader.lazyGetter(this, "DOMUtils", () => {
-  return Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
-});
+loader.lazyDefine(this, "DOMUtils",
+  () => Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils));
 
 /**
  * A generator function that lexes a CSS source string, yielding the

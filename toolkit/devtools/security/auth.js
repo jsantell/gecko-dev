@@ -11,14 +11,14 @@ let Services = require("Services");
 let promise = require("promise");
 let DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 let { dumpn, dumpv } = DevToolsUtils;
-loader.lazyRequireGetter(this, "prompt",
+loader.lazyDefine(this, "prompt",
   "devtools/toolkit/security/prompt");
-loader.lazyRequireGetter(this, "cert",
+loader.lazyDefine(this, "cert",
   "devtools/toolkit/security/cert");
-loader.lazyRequireGetter(this, "asyncStorage",
+loader.lazyDefine(this, "asyncStorage",
   "devtools/toolkit/shared/async-storage");
-DevToolsUtils.defineLazyModuleGetter(this, "Task",
-  "resource://gre/modules/Task.jsm");
+loader.lazyDefine(this, "Task",
+  "resource://gre/modules/Task.jsm", true);
 
 /**
  * A simple enum-like object with keys mirrored to values.

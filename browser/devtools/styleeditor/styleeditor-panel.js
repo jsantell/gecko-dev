@@ -15,11 +15,8 @@ let EventEmitter = require("devtools/toolkit/event-emitter");
 Cu.import("resource:///modules/devtools/StyleEditorUI.jsm");
 Cu.import("resource:///modules/devtools/StyleEditorUtil.jsm");
 
-loader.lazyGetter(this, "StyleSheetsFront",
-  () => require("devtools/server/actors/stylesheets").StyleSheetsFront);
-
-loader.lazyGetter(this, "StyleEditorFront",
-  () => require("devtools/server/actors/styleeditor").StyleEditorFront);
+loader.lazyDefine(this, "StyleSheetsFront", "devtools/server/actors/stylesheets", true);
+loader.lazyDefine(this, "StyleEditorFront", "devtools/server/actors/styleeditor", true);
 
 this.StyleEditorPanel = function StyleEditorPanel(panelWin, toolbox) {
   EventEmitter.decorate(this);

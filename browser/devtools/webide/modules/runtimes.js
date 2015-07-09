@@ -11,9 +11,9 @@ const {Simulators} = require("devtools/webide/simulators");
 const discovery = require("devtools/toolkit/discovery/discovery");
 const EventEmitter = require("devtools/toolkit/event-emitter");
 const promise = require("promise");
-loader.lazyRequireGetter(this, "AuthenticationResult",
+loader.lazyDefine(this, "AuthenticationResult",
   "devtools/toolkit/security/auth", true);
-loader.lazyRequireGetter(this, "DevToolsUtils",
+loader.lazyDefine(this, "DevToolsUtils",
   "devtools/toolkit/DevToolsUtils");
 
 const Strings = Services.strings.createBundle("chrome://browser/locale/devtools/webide.properties");

@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 "use strict";
-loader.lazyRequireGetter(this, "timers",
+loader.lazyDefine(this, "timers",
   "resource://gre/modules/Timer.jsm");
-loader.lazyRequireGetter(this, "defer",
+loader.lazyDefine(this, "defer",
   "sdk/core/promise", true);
 
 /**

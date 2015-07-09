@@ -30,9 +30,10 @@ Cu.import("resource:///modules/devtools/scratchpad-manager.jsm");
 Cu.import("resource:///modules/devtools/DOMHelpers.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 
-loader.lazyImporter(this, "CommandUtils",
-  "resource:///modules/devtools/DeveloperToolbar.jsm");
-loader.lazyGetter(this, "toolboxStrings", () => {
+loader.lazyDefine(this, "CommandUtils",
+  "resource:///modules/devtools/DeveloperToolbar.jsm", true);
+
+loader.lazyDefine(this, "toolboxStrings", () => {
   const properties = "chrome://browser/locale/devtools/toolbox.properties";
   const bundle = Services.strings.createBundle(properties);
   return (name, ...args) => {
@@ -47,26 +48,26 @@ loader.lazyGetter(this, "toolboxStrings", () => {
     }
   };
 });
-loader.lazyRequireGetter(this, "getHighlighterUtils",
+loader.lazyDefine(this, "getHighlighterUtils",
   "devtools/framework/toolbox-highlighter-utils", true);
-loader.lazyRequireGetter(this, "Hosts",
+loader.lazyDefine(this, "Hosts",
   "devtools/framework/toolbox-hosts", true);
-loader.lazyRequireGetter(this, "Selection",
+loader.lazyDefine(this, "Selection",
   "devtools/framework/selection", true);
-loader.lazyRequireGetter(this, "InspectorFront",
+loader.lazyDefine(this, "InspectorFront",
   "devtools/server/actors/inspector", true);
-loader.lazyRequireGetter(this, "DevToolsUtils",
+loader.lazyDefine(this, "DevToolsUtils",
   "devtools/toolkit/DevToolsUtils");
-loader.lazyRequireGetter(this, "showDoorhanger",
+loader.lazyDefine(this, "showDoorhanger",
   "devtools/shared/doorhanger", true);
-loader.lazyRequireGetter(this, "getPerformanceFront",
+loader.lazyDefine(this, "getPerformanceFront",
   "devtools/performance/front", true);
-loader.lazyRequireGetter(this, "system",
+loader.lazyDefine(this, "system",
   "devtools/toolkit/shared/system");
-loader.lazyGetter(this, "osString", () => {
+loader.lazyDefine(this, "osString", () => {
   return Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime).OS;
 });
-loader.lazyGetter(this, "registerHarOverlay", () => {
+loader.lazyDefine(this, "registerHarOverlay", () => {
   return require("devtools/netmonitor/har/toolbox-overlay.js").register;
 });
 

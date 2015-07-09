@@ -17,10 +17,8 @@ const {PSEUDO_ELEMENT_SET} = require("devtools/styleinspector/css-logic");
 // This will add the "stylesheet" actor type for protocol.js to recognize
 require("devtools/server/actors/stylesheets");
 
-loader.lazyGetter(this, "CssLogic", () => {
-  return require("devtools/styleinspector/css-logic").CssLogic;
-});
-loader.lazyGetter(this, "DOMUtils", () => {
+loader.lazyDefine(this, "CssLogic", "devtools/styleinspector/css-logic", true);
+loader.lazyDefine(this, "DOMUtils", () => {
   return Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
 });
 

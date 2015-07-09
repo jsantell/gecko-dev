@@ -9,15 +9,15 @@ const {Cc, Ci, Cu} = require("chrome");
 
 const { Services } = require("resource://gre/modules/Services.jsm");
 
-loader.lazyImporter(this, "VariablesView", "resource:///modules/devtools/VariablesView.jsm");
-loader.lazyImporter(this, "escapeHTML", "resource:///modules/devtools/VariablesView.jsm");
-loader.lazyImporter(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm");
-loader.lazyImporter(this, "Task", "resource://gre/modules/Task.jsm");
-loader.lazyImporter(this, "PluralForm", "resource://gre/modules/PluralForm.jsm");
-loader.lazyImporter(this, "ObjectClient", "resource://gre/modules/devtools/dbg-client.jsm");
+loader.lazyDefine(this, "VariablesView", "resource:///modules/devtools/VariablesView.jsm", true);
+loader.lazyDefine(this, "escapeHTML", "resource:///modules/devtools/VariablesView.jsm", true);
+loader.lazyDefine(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm", true);
+loader.lazyDefine(this, "Task", "resource://gre/modules/Task.jsm", true);
+loader.lazyDefine(this, "PluralForm", "resource://gre/modules/PluralForm.jsm", true);
+loader.lazyDefine(this, "ObjectClient", "resource://gre/modules/devtools/dbg-client.jsm", true);
 
-loader.lazyRequireGetter(this, "promise");
-loader.lazyRequireGetter(this, "TableWidget", "devtools/shared/widgets/TableWidget", true);
+loader.lazyDefine(this, "promise");
+loader.lazyDefine(this, "TableWidget", "devtools/shared/widgets/TableWidget", true);
 
 const Heritage = require("sdk/core/heritage");
 const URI = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);

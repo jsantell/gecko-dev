@@ -9,9 +9,8 @@ const TargetFactory = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}
 const l10n = require("gcli/l10n");
 const gcli = require("gcli/index");
 
-loader.lazyImporter(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm");
-
-loader.lazyGetter(this, "Debugger", () => {
+loader.lazyDefine(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm", true);
+loader.lazyDefine(this, "Debugger", () => {
   let global = Cu.getGlobalForObject({});
   let JsDebugger = Cu.import("resource://gre/modules/jsdebugger.jsm", {});
   JsDebugger.addDebuggerToGlobal(global);

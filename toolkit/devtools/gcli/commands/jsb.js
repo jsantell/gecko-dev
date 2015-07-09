@@ -9,9 +9,9 @@ const l10n = require("gcli/l10n");
 const XMLHttpRequest = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"];
 const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 
-loader.lazyImporter(this, "Preferences", "resource://gre/modules/Preferences.jsm");
+loader.lazyDefine(this, "Preferences", "resource://gre/modules/Preferences.jsm", true);
 
-devtools.lazyRequireGetter(this, "beautify", "devtools/jsbeautify");
+devtools.lazyDefine(this, "beautify", "devtools/jsbeautify");
 
 exports.items = [
   {

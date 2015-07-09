@@ -20,22 +20,19 @@ const Heritage = require("sdk/core/heritage");
 const {Eyedropper} = require("devtools/eyedropper/eyedropper");
 const Editor = require("devtools/sourceeditor/editor");
 const {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
-
-devtools.lazyRequireGetter(this, "beautify", "devtools/jsbeautify");
-
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "setNamedTimeout",
-  "resource:///modules/devtools/ViewHelpers.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "clearNamedTimeout",
-  "resource:///modules/devtools/ViewHelpers.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "VariablesView",
-  "resource:///modules/devtools/VariablesView.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "VariablesViewController",
-  "resource:///modules/devtools/VariablesViewController.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-  "resource://gre/modules/Task.jsm");
+devtools.lazyDefine(this, "beautify", "devtools/jsbeautify");
+devtools.lazyDefine(this, "setNamedTimeout",
+  "resource:///modules/devtools/ViewHelpers.jsm", true);
+devtools.lazyDefine(this, "clearNamedTimeout",
+  "resource:///modules/devtools/ViewHelpers.jsm", true);
+devtools.lazyDefine(this, "VariablesView",
+  "resource:///modules/devtools/VariablesView.jsm", true);
+devtools.lazyDefine(this, "VariablesViewController",
+  "resource:///modules/devtools/VariablesViewController.jsm", true);
+devtools.lazyDefine(this, "Task",
+  "resource://gre/modules/Task.jsm", true);
 
 const XHTML_NS = "http://www.w3.org/1999/xhtml";
 const SPECTRUM_FRAME = "chrome://browser/content/devtools/spectrum-frame.xhtml";
@@ -1717,7 +1714,7 @@ L10N.prototype = {};
 
 let l10n = new L10N();
 
-loader.lazyGetter(L10N.prototype, "strings", () => {
+loader.lazyDefine(L10N.prototype, "strings", () => {
   return Services.strings.createBundle(
     "chrome://browser/locale/devtools/inspector.properties");
 });

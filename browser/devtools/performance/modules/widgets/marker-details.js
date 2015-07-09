@@ -9,11 +9,11 @@
 
 const { Cc, Ci, Cu, Cr } = require("chrome");
 
-loader.lazyRequireGetter(this, "EventEmitter",
+loader.lazyDefine(this, "EventEmitter",
   "devtools/toolkit/event-emitter");
-loader.lazyRequireGetter(this, "L10N",
+loader.lazyDefine(this, "L10N",
   "devtools/performance/global", true);
-loader.lazyRequireGetter(this, "MarkerUtils",
+loader.lazyDefine(this, "MarkerUtils",
   "devtools/performance/marker-utils");
 
 /**

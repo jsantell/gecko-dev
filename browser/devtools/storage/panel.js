@@ -12,11 +12,8 @@ Cu.import("resource://gre/modules/Promise.jsm");
 
 let EventEmitter = require("devtools/toolkit/event-emitter");
 
-loader.lazyGetter(this, "StorageFront",
-  () => require("devtools/server/actors/storage").StorageFront);
-
-loader.lazyGetter(this, "StorageUI",
-  () => require("devtools/storage/ui").StorageUI);
+loader.lazyDefine(this, "StorageFront", "devtools/server/actors/storage", true);
+loader.lazyDefine(this, "StorageUI", "devtools/storage/ui", true);
 
 this.StoragePanel = function StoragePanel(panelWin, toolbox) {
   EventEmitter.decorate(this);

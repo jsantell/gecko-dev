@@ -10,7 +10,7 @@ const { expectState, ActorPool } = require("devtools/server/actors/common");
 const { ObjectActor,
         createValueGrip } = require("devtools/server/actors/object");
 const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
-loader.lazyRequireGetter(this, "events", "sdk/event/core");
+loader.lazyDefine(this, "events", "sdk/event/core");
 
 /* global events */
 

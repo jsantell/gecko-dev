@@ -118,7 +118,7 @@ HELPER_SHEET += ":-moz-devtools-highlighted { outline: 2px dashed #F06!important
 
 Cu.import("resource://gre/modules/devtools/LayoutHelpers.jsm");
 
-loader.lazyRequireGetter(this, "DevToolsUtils",
+loader.lazyDefine(this, "DevToolsUtils",
                          "devtools/toolkit/DevToolsUtils");
 
 loader.lazyGetter(this, "DOMParser", function() {

@@ -21,7 +21,7 @@ const {LongStringActor, ShortLongString} = require("devtools/server/actors/strin
 const {fetch} = require("devtools/toolkit/DevToolsUtils");
 const {listenOnce} = require("devtools/async-utils");
 
-loader.lazyGetter(this, "CssLogic", () => require("devtools/styleinspector/css-logic").CssLogic);
+loader.lazyDefine(this, "CssLogic", "devtools/styleinspector/css-logic", true);
 
 let TRANSITION_CLASS = "moz-styleeditor-transitioning";
 let TRANSITION_DURATION_MS = 500;

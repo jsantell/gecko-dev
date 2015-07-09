@@ -18,27 +18,17 @@ const EventEmitter = require("devtools/toolkit/event-emitter");
 const { CallWatcherFront } = require("devtools/server/actors/call-watcher");
 const { CanvasFront } = require("devtools/server/actors/canvas");
 const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
+const { Task } = require("resource://gre/modules/Task.jsm");
 
 const Telemetry = require("devtools/shared/telemetry");
 const telemetry = new Telemetry();
 
 const CANVAS_ACTOR_RECORDING_ATTEMPT = DevToolsUtils.testing ? 500 : 5000;
 
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-  "resource://gre/modules/Task.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
-  "resource://gre/modules/PluralForm.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
-  "resource://gre/modules/FileUtils.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
-  "resource://gre/modules/NetUtil.jsm");
-
-XPCOMUtils.defineLazyGetter(this, "NetworkHelper", function() {
-  return require("devtools/toolkit/webconsole/network-helper");
-});
+devtools.lazyDefine(this, "PluralForm", "resource://gre/modules/PluralForm.jsm", true);
+devtools.lazyDefine(this, "FileUtils", "resource://gre/modules/FileUtils.jsm", true);
+devtools.lazyDefine(this, "NetUtil", "resource://gre/modules/NetUtil.jsm", true);
+devtools.lazyDefine(this, "NetworkHelper", "devtools/toolkit/webconsole/network-helper");
 
 // The panel's window global is an EventEmitter firing the following events:
 const EVENTS = {

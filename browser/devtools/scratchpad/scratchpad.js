@@ -43,7 +43,8 @@ const FALLBACK_CHARSET_LIST = "intl.fallbackCharsetList.ISO-8859-1";
 
 const VARIABLES_VIEW_URL = "chrome://browser/content/devtools/widgets/VariablesView.xul";
 
-const require   = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
+const devtools  = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools;
+const require   = devtools.require;
 
 const Telemetry = require("devtools/shared/telemetry");
 const Editor    = require("devtools/sourceeditor/editor");
@@ -52,7 +53,6 @@ const EventEmitter = require("devtools/toolkit/event-emitter");
 const {DevToolsWorker} = require("devtools/toolkit/shared/worker");
 
 const { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource:///modules/devtools/scratchpad-manager.jsm");
@@ -63,32 +63,35 @@ Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 Cu.import("resource://gre/modules/reflect.jsm");
 Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "VariablesView",
-  "resource:///modules/devtools/VariablesView.jsm");
+devtools.lazyDefine(this, "VariablesView",
+  "resource:///modules/devtools/VariablesView.jsm", true);
 
-XPCOMUtils.defineLazyModuleGetter(this, "VariablesViewController",
-  "resource:///modules/devtools/VariablesViewController.jsm");
+devtools.lazyDefine(this, "VariablesViewController",
+  "resource:///modules/devtools/VariablesViewController.jsm", true);
 
-XPCOMUtils.defineLazyModuleGetter(this, "EnvironmentClient",
-  "resource://gre/modules/devtools/dbg-client.jsm");
+devtools.lazyDefine(this, "EnvironmentClient",
+  "resource://gre/modules/devtools/dbg-client.jsm", true);
 
-XPCOMUtils.defineLazyModuleGetter(this, "ObjectClient",
-  "resource://gre/modules/devtools/dbg-client.jsm");
+devtools.lazyDefine(this, "ObjectClient",
+  "resource://gre/modules/devtools/dbg-client.jsm", true);
 
-XPCOMUtils.defineLazyModuleGetter(this, "DebuggerServer",
-  "resource://gre/modules/devtools/dbg-server.jsm");
+devtools.lazyDefine(this, "DebuggerServer",
+  "resource://gre/modules/devtools/dbg-server.jsm", true);
 
-XPCOMUtils.defineLazyModuleGetter(this, "DebuggerClient",
-  "resource://gre/modules/devtools/dbg-client.jsm");
+devtools.lazyDefine(this, "DebuggerClient",
+  "resource://gre/modules/devtools/dbg-client.jsm", true);
 
-XPCOMUtils.defineLazyGetter(this, "REMOTE_TIMEOUT", () =>
+devtools.lazyDefine(this, "REMOTE_TIMEOUT", () =>
   Services.prefs.getIntPref("devtools.debugger.remote-timeout"));
 
-XPCOMUtils.defineLazyModuleGetter(this, "ShortcutUtils",
+devtools.lazyDefine(this, "ShortcutUtils",
   "resource://gre/modules/ShortcutUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "Reflect",
+devtools.lazyDefine(this, "Reflect",
   "resource://gre/modules/reflect.jsm");
+
+devtools.lazyDefine(Scratchpad, "strings", () => Services.strings.createBundle(SCRATCHPAD_L10N));
+
 
 // Because we have no constructor / destructor where we can log metrics we need
 // to do so here.
@@ -2482,10 +2485,6 @@ var CloseObserver = {
                                 false);
   },
 };
-
-XPCOMUtils.defineLazyGetter(Scratchpad, "strings", function () {
-  return Services.strings.createBundle(SCRATCHPAD_L10N);
-});
 
 addEventListener("load", Scratchpad.onLoad.bind(Scratchpad), false);
 addEventListener("unload", Scratchpad.onUnload.bind(Scratchpad), false);

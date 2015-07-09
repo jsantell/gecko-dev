@@ -8,14 +8,14 @@ const { defer, all, resolve } = require("sdk/core/promise");
 const { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
 const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 
-loader.lazyImporter(this, "ViewHelpers", "resource:///modules/devtools/ViewHelpers.jsm");
-loader.lazyRequireGetter(this, "NetworkHelper", "devtools/toolkit/webconsole/network-helper");
+loader.lazyDefine(this, "ViewHelpers", "resource:///modules/devtools/ViewHelpers.jsm");
+loader.lazyDefine(this, "NetworkHelper", "devtools/toolkit/webconsole/network-helper");
 
-loader.lazyGetter(this, "appInfo", () => {
+loader.lazyDefine(this, "appInfo", () => {
   return Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo);
 });
 
-loader.lazyGetter(this, "L10N", () => {
+loader.lazyDefine(this, "L10N", () => {
   return new ViewHelpers.L10N("chrome://browser/locale/devtools/har.properties");
 });
 

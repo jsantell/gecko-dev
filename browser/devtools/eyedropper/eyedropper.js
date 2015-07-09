@@ -11,30 +11,18 @@ const {setTimeout, clearTimeout} = Cu.import("resource://gre/modules/Timer.jsm",
 
 Cu.import("resource://gre/modules/Services.jsm");
 
-loader.lazyGetter(this, "clipboardHelper", function() {
-  return Cc["@mozilla.org/widget/clipboardhelper;1"]
-    .getService(Ci.nsIClipboardHelper);
-});
+loader.lazyDefine(this, "clipboardHelper",
+  () => Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper));
+loader.lazyDefine(this, "ssService",
+  () => Cc["@mozilla.org/content/style-sheet-service;1"].getService(Ci.nsIStyleSheetService));
+loader.lazyDefine(this, "ioService",
+  () => Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService));
+loader.lazyDefine(this, "DOMUtils",
+  () => Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils));
+loader.lazyDefine(this, "XULRuntime",
+  () => Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime));
 
-loader.lazyGetter(this, "ssService", function() {
-  return Cc["@mozilla.org/content/style-sheet-service;1"]
-    .getService(Ci.nsIStyleSheetService);
-});
-
-loader.lazyGetter(this, "ioService", function() {
-  return Cc["@mozilla.org/network/io-service;1"]
-    .getService(Ci.nsIIOService);
-});
-
-loader.lazyGetter(this, "DOMUtils", function () {
-  return Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
-});
-
-loader.lazyGetter(this, "XULRuntime", function() {
-  return Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime);
-});
-
-loader.lazyGetter(this, "l10n", () => Services.strings
+loader.lazyDefine(this, "l10n", () => Services.strings
   .createBundle("chrome://browser/locale/devtools/eyedropper.properties"));
 
 const EYEDROPPER_URL = "chrome://browser/content/devtools/eyedropper.xul";

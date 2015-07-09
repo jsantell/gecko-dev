@@ -5,13 +5,13 @@
 
 const { Cc, Ci, Cu, Cr } = require("chrome");
 
-loader.lazyRequireGetter(this, "L10N",
+loader.lazyDefine(this, "L10N",
   "devtools/performance/global", true);
-loader.lazyRequireGetter(this, "CATEGORY_MAPPINGS",
+loader.lazyDefine(this, "CATEGORY_MAPPINGS",
   "devtools/performance/global", true);
-loader.lazyRequireGetter(this, "JITOptimizations",
+loader.lazyDefine(this, "JITOptimizations",
   "devtools/performance/jit", true);
-loader.lazyRequireGetter(this, "FrameUtils",
+loader.lazyDefine(this, "FrameUtils",
   "devtools/performance/frame-utils");
 
 /**

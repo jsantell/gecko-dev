@@ -15,42 +15,35 @@ let Services = require("Services");
 let promise = require("promise");
 let DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 let { dumpn, dumpv } = DevToolsUtils;
-loader.lazyRequireGetter(this, "DebuggerTransport",
+loader.lazyDefine(this, "DebuggerTransport",
   "devtools/toolkit/transport/transport", true);
-loader.lazyRequireGetter(this, "DebuggerServer",
+loader.lazyDefine(this, "DebuggerServer",
   "devtools/server/main", true);
-loader.lazyRequireGetter(this, "discovery",
+loader.lazyDefine(this, "discovery",
   "devtools/toolkit/discovery/discovery");
-loader.lazyRequireGetter(this, "cert",
+loader.lazyDefine(this, "cert",
   "devtools/toolkit/security/cert");
-loader.lazyRequireGetter(this, "Authenticators",
+loader.lazyDefine(this, "Authenticators",
   "devtools/toolkit/security/auth", true);
-loader.lazyRequireGetter(this, "AuthenticationResult",
+loader.lazyDefine(this, "AuthenticationResult",
   "devtools/toolkit/security/auth", true);
-loader.lazyRequireGetter(this, "setTimeout", "Timer", true);
-loader.lazyRequireGetter(this, "clearTimeout", "Timer", true);
+loader.lazyDefine(this, "setTimeout", "Timer", true);
+loader.lazyDefine(this, "clearTimeout", "Timer", true);
 
-DevToolsUtils.defineLazyGetter(this, "nsFile", () => {
-  return CC("@mozilla.org/file/local;1", "nsIFile", "initWithPath");
+loader.lazyDefine(this, "nsFile",
+  () => CC("@mozilla.org/file/local;1", "nsIFile", "initWithPath"));
+
+loader.lazyDefine(this, "socketTransportService",
+  () => Cc["@mozilla.org/network/socket-transport-service;1"].getService(Ci.nsISocketTransportService));
+
+loader.lazyDefine(this, "certOverrideService",
+  () => Cc["@mozilla.org/security/certoverride;1"].getService(Ci.nsICertOverrideService));
+
+loader.lazyDefine(this, "nssErrorsService",
+  () => Cc["@mozilla.org/nss_errors_service;1"].getService(Ci.nsINSSErrorsService));
 });
 
-DevToolsUtils.defineLazyGetter(this, "socketTransportService", () => {
-  return Cc["@mozilla.org/network/socket-transport-service;1"]
-         .getService(Ci.nsISocketTransportService);
-});
-
-DevToolsUtils.defineLazyGetter(this, "certOverrideService", () => {
-  return Cc["@mozilla.org/security/certoverride;1"]
-         .getService(Ci.nsICertOverrideService);
-});
-
-DevToolsUtils.defineLazyGetter(this, "nssErrorsService", () => {
-  return Cc["@mozilla.org/nss_errors_service;1"]
-         .getService(Ci.nsINSSErrorsService);
-});
-
-DevToolsUtils.defineLazyModuleGetter(this, "Task",
-  "resource://gre/modules/Task.jsm");
+loader.lazyDefine(this, "Task", "resource://gre/modules/Task.jsm", true);
 
 let DebuggerSocket = {};
 
@@ -523,9 +516,8 @@ SocketListener.prototype = {
 };
 
 // Client must complete TLS handshake within this window (ms)
-loader.lazyGetter(this, "HANDSHAKE_TIMEOUT", () => {
-  return Services.prefs.getIntPref("devtools.remote.tls-handshake-timeout");
-});
+loader.lazyDefine(this, "HANDSHAKE_TIMEOUT",
+  () => Services.prefs.getIntPref("devtools.remote.tls-handshake-timeout"));
 
 /**
  * A |ServerSocketConnection| is created by a |SocketListener| for each accepted

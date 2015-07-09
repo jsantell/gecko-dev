@@ -5,19 +5,19 @@
 
 const { Task } = require("resource://gre/modules/Task.jsm");
 
-loader.lazyRequireGetter(this, "promise");
-loader.lazyRequireGetter(this, "EventEmitter",
+loader.lazyDefine(this, "promise");
+loader.lazyDefine(this, "EventEmitter",
   "devtools/toolkit/event-emitter");
-loader.lazyRequireGetter(this, "Poller",
+loader.lazyDefine(this, "Poller",
   "devtools/shared/poller", true);
 
-loader.lazyRequireGetter(this, "CompatUtils",
+loader.lazyDefine(this, "CompatUtils",
   "devtools/performance/compatibility");
-loader.lazyRequireGetter(this, "RecordingUtils",
+loader.lazyDefine(this, "RecordingUtils",
   "devtools/performance/recording-utils");
-loader.lazyRequireGetter(this, "TimelineFront",
+loader.lazyDefine(this, "TimelineFront",
   "devtools/server/actors/timeline", true);
-loader.lazyRequireGetter(this, "MemoryFront",
+loader.lazyDefine(this, "MemoryFront",
   "devtools/server/actors/memory", true);
 
 // how often do we pull allocation sites from the memory actor

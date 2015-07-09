@@ -9,10 +9,8 @@
 
 const {Cc, Ci, Cu} = require("chrome");
 
-loader.lazyGetter(this, "eventListenerService", () => {
-  return Cc["@mozilla.org/eventlistenerservice;1"]
-           .getService(Ci.nsIEventListenerService);
-});
+loader.lazyDefine(this, "eventListenerService",
+  () => Cc["@mozilla.org/eventlistenerservice;1"].getService(Ci.nsIEventListenerService));
 
 let parsers = [
   {

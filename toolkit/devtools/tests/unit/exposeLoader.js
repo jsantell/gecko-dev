@@ -3,6 +3,6 @@
 
 exports.exerciseLazyRequire = (name, path) => {
   const o = {};
-  loader.lazyRequireGetter(o, name, path);
+  loader.lazyDefine(o, name, path);
   return o;
 };

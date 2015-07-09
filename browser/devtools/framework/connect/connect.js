@@ -18,9 +18,8 @@ let {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 let gClient;
 let gConnectionTimeout;
 
-XPCOMUtils.defineLazyGetter(window, 'l10n', function () {
-  return Services.strings.createBundle('chrome://browser/locale/devtools/connection-screen.properties');
-});
+devtools.lazyDefine(window, 'l10n',
+  () => Services.strings.createBundle('chrome://browser/locale/devtools/connection-screen.properties'));
 
 /**
  * Once DOM is ready, we prefil the host/port inputs with

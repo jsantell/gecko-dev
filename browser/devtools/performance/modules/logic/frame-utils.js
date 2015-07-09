@@ -5,8 +5,8 @@
 
 const { Cc, Ci, Cu, Cr } = require("chrome");
 
-loader.lazyRequireGetter(this, "Services");
-loader.lazyRequireGetter(this, "global",
+loader.lazyDefine(this, "Services");
+loader.lazyDefine(this, "global",
   "devtools/performance/global");
 
 // Character codes used in various parsing helper functions.

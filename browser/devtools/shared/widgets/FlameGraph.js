@@ -7,23 +7,23 @@ const { Task } = require("resource://gre/modules/Task.jsm");
 const { ViewHelpers } = require("resource:///modules/devtools/ViewHelpers.jsm");
 const { setNamedTimeout, clearNamedTimeout } = require("resource:///modules/devtools/ViewHelpers.jsm");
 
-loader.lazyRequireGetter(this, "promise");
-loader.lazyRequireGetter(this, "EventEmitter",
+loader.lazyDefine(this, "promise");
+loader.lazyDefine(this, "EventEmitter",
   "devtools/toolkit/event-emitter");
 
-loader.lazyRequireGetter(this, "getColor",
+loader.lazyDefine(this, "getColor",
   "devtools/shared/theme", true);
 
-loader.lazyRequireGetter(this, "CATEGORY_MAPPINGS",
+loader.lazyDefine(this, "CATEGORY_MAPPINGS",
   "devtools/performance/global", true);
-loader.lazyRequireGetter(this, "FrameUtils",
+loader.lazyDefine(this, "FrameUtils",
   "devtools/performance/frame-utils");
 
-loader.lazyRequireGetter(this, "AbstractCanvasGraph",
+loader.lazyDefine(this, "AbstractCanvasGraph",
   "devtools/shared/widgets/Graphs", true);
-loader.lazyRequireGetter(this, "GraphArea",
+loader.lazyDefine(this, "GraphArea",
   "devtools/shared/widgets/Graphs", true);
-loader.lazyRequireGetter(this, "GraphAreaDragger",
+loader.lazyDefine(this, "GraphAreaDragger",
   "devtools/shared/widgets/Graphs", true);
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";

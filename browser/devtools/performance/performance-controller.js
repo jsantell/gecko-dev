@@ -8,67 +8,65 @@ const { devtools: loader } = Cu.import("resource://gre/modules/devtools/Loader.j
 const require = loader.require;
 
 const { Task } = require("resource://gre/modules/Task.jsm");
-const { Heritage, ViewHelpers, WidgetMethods } = require("resource:///modules/devtools/ViewHelpers.jsm");
+const {
+  Heritage, ViewHelpers, WidgetMethods, setNamedTimeout, clearNamedTimeout
+} = require("resource:///modules/devtools/ViewHelpers.jsm");
 
-loader.lazyRequireGetter(this, "Services");
-loader.lazyRequireGetter(this, "promise");
-loader.lazyRequireGetter(this, "EventEmitter",
+loader.lazyDefine(this, "Services");
+loader.lazyDefine(this, "promise");
+loader.lazyDefine(this, "EventEmitter",
   "devtools/toolkit/event-emitter");
-loader.lazyRequireGetter(this, "DevToolsUtils",
+loader.lazyDefine(this, "DevToolsUtils",
   "devtools/toolkit/DevToolsUtils");
-loader.lazyRequireGetter(this, "system",
+loader.lazyDefine(this, "system",
   "devtools/toolkit/shared/system");
 
 // Logic modules
 
-loader.lazyRequireGetter(this, "L10N",
+loader.lazyDefine(this, "L10N",
   "devtools/performance/global", true);
-loader.lazyRequireGetter(this, "TIMELINE_BLUEPRINT",
+loader.lazyDefine(this, "TIMELINE_BLUEPRINT",
   "devtools/performance/markers", true);
-loader.lazyRequireGetter(this, "RecordingUtils",
+loader.lazyDefine(this, "RecordingUtils",
   "devtools/performance/recording-utils");
-loader.lazyRequireGetter(this, "RecordingModel",
+loader.lazyDefine(this, "RecordingModel",
   "devtools/performance/recording-model", true);
-loader.lazyRequireGetter(this, "GraphsController",
+loader.lazyDefine(this, "GraphsController",
   "devtools/performance/graphs", true);
-loader.lazyRequireGetter(this, "WaterfallHeader",
+loader.lazyDefine(this, "WaterfallHeader",
   "devtools/performance/waterfall-ticks", true);
-loader.lazyRequireGetter(this, "MarkerView",
+loader.lazyDefine(this, "MarkerView",
   "devtools/performance/marker-view", true);
-loader.lazyRequireGetter(this, "MarkerDetails",
+loader.lazyDefine(this, "MarkerDetails",
   "devtools/performance/marker-details", true);
-loader.lazyRequireGetter(this, "MarkerUtils",
+loader.lazyDefine(this, "MarkerUtils",
   "devtools/performance/marker-utils");
-loader.lazyRequireGetter(this, "WaterfallUtils",
+loader.lazyDefine(this, "WaterfallUtils",
   "devtools/performance/waterfall-utils");
-loader.lazyRequireGetter(this, "CallView",
+loader.lazyDefine(this, "CallView",
   "devtools/performance/tree-view", true);
-loader.lazyRequireGetter(this, "ThreadNode",
+loader.lazyDefine(this, "ThreadNode",
   "devtools/performance/tree-model", true);
-loader.lazyRequireGetter(this, "FrameNode",
+loader.lazyDefine(this, "FrameNode",
   "devtools/performance/tree-model", true);
-loader.lazyRequireGetter(this, "JITOptimizations",
+loader.lazyDefine(this, "JITOptimizations",
   "devtools/performance/jit", true);
 
 // Widgets modules
 
-loader.lazyRequireGetter(this, "OptionsView",
+loader.lazyDefine(this, "OptionsView",
   "devtools/shared/options-view", true);
-loader.lazyRequireGetter(this, "FlameGraphUtils",
+loader.lazyDefine(this, "FlameGraphUtils",
   "devtools/shared/widgets/FlameGraph", true);
-loader.lazyRequireGetter(this, "FlameGraph",
+loader.lazyDefine(this, "FlameGraph",
   "devtools/shared/widgets/FlameGraph", true);
-loader.lazyRequireGetter(this, "TreeWidget",
+loader.lazyDefine(this, "TreeWidget",
   "devtools/shared/widgets/TreeWidget", true);
 
-loader.lazyImporter(this, "SideMenuWidget",
-  "resource:///modules/devtools/SideMenuWidget.jsm");
-loader.lazyImporter(this, "setNamedTimeout",
-  "resource:///modules/devtools/ViewHelpers.jsm");
-loader.lazyImporter(this, "clearNamedTimeout",
-  "resource:///modules/devtools/ViewHelpers.jsm");
-loader.lazyImporter(this, "PluralForm",
-  "resource://gre/modules/PluralForm.jsm");
+loader.lazyDefine(this, "SideMenuWidget",
+  "resource:///modules/devtools/SideMenuWidget.jsm", true);
+loader.lazyDefine(this, "PluralForm",
+  "resource://gre/modules/PluralForm.jsm", true);
 
 const BRANCH_NAME = "devtools.performance.ui.";
 

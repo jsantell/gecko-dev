@@ -13,16 +13,16 @@ const { TextEncoder, TextDecoder } = Cu.import('resource://gre/modules/commonjs/
 const gcli = require("gcli/index");
 const l10n = require("gcli/l10n");
 
-loader.lazyGetter(this, "prefBranch", function() {
+loader.lazyDefine(this, "prefBranch", function() {
   let prefService = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefService);
   return prefService.getBranch(null).QueryInterface(Ci.nsIPrefBranch2);
 });
 
-loader.lazyGetter(this, "supportsString", function() {
+loader.lazyDefine(this, "supportsString", function() {
   return Cc["@mozilla.org/supports-string;1"].createInstance(Ci.nsISupportsString);
 });
 
-loader.lazyImporter(this, "NetUtil", "resource://gre/modules/NetUtil.jsm");
+loader.lazyDefine(this, "NetUtil", "resource://gre/modules/NetUtil.jsm", true);
 
 const PREF_DIR = "devtools.commands.dir";
 

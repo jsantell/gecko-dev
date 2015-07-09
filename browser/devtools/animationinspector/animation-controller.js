@@ -13,10 +13,10 @@ Cu.import("resource://gre/modules/devtools/Loader.jsm");
 Cu.import("resource://gre/modules/devtools/Console.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 
-devtools.lazyRequireGetter(this, "promise");
-devtools.lazyRequireGetter(this, "EventEmitter",
+devtools.lazyDefine(this, "promise");
+devtools.lazyDefine(this, "EventEmitter",
                                  "devtools/toolkit/event-emitter");
-devtools.lazyRequireGetter(this, "AnimationsFront",
+devtools.lazyDefine(this, "AnimationsFront",
                                  "devtools/server/actors/animation", true);
 
 const require = devtools.require;

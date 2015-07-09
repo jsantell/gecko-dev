@@ -6,22 +6,22 @@
 const { Cc, Ci, Cu, Cr } = require("chrome");
 const { Task } = require("resource://gre/modules/Task.jsm");
 
-loader.lazyRequireGetter(this, "Services");
-loader.lazyRequireGetter(this, "promise");
-loader.lazyRequireGetter(this, "EventEmitter",
+loader.lazyDefine(this, "Services");
+loader.lazyDefine(this, "promise");
+loader.lazyDefine(this, "EventEmitter",
   "devtools/toolkit/event-emitter");
-loader.lazyRequireGetter(this, "extend",
+loader.lazyDefine(this, "extend",
   "sdk/util/object", true);
 
-loader.lazyRequireGetter(this, "Actors",
+loader.lazyDefine(this, "Actors",
   "devtools/performance/actors");
-loader.lazyRequireGetter(this, "RecordingModel",
+loader.lazyDefine(this, "RecordingModel",
   "devtools/performance/recording-model", true);
-loader.lazyRequireGetter(this, "DevToolsUtils",
+loader.lazyDefine(this, "DevToolsUtils",
   "devtools/toolkit/DevToolsUtils");
 
-loader.lazyImporter(this, "gDevTools",
-  "resource:///modules/devtools/gDevTools.jsm");
+loader.lazyDefine(this, "gDevTools",
+  "resource:///modules/devtools/gDevTools.jsm", true);
 
 /**
  * A cache of all PerformanceFront instances.

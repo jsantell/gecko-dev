@@ -8,9 +8,9 @@
 
 const {Cc, Ci, Cu} = require("chrome");
 
-loader.lazyGetter(this, "NetworkHelper", () => require("devtools/toolkit/webconsole/network-helper"));
-loader.lazyImporter(this, "NetUtil", "resource://gre/modules/NetUtil.jsm");
-loader.lazyServiceGetter(this, "mimeService", "@mozilla.org/mime;1", "nsIMIMEService");
+loader.lazyDefine(this, "NetworkHelper", "devtools/toolkit/webconsole/network-helper");
+loader.lazyDefine(this, "NetUtil", "resource://gre/modules/NetUtil.jsm", true);
+loader.lazyDefine(this, "mimeService", () => Cc["@mozilla.org/mime;1"].getService(Ci.nsIMIMEService));
 
 let WebConsoleUtils = require("devtools/toolkit/webconsole/utils").Utils;
 

@@ -9,9 +9,9 @@
 let { Ci } = require("chrome");
 let Services = require("Services");
 let DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
-loader.lazyRequireGetter(this, "DebuggerSocket",
+loader.lazyDefine(this, "DebuggerSocket",
   "devtools/toolkit/security/socket", true);
-loader.lazyRequireGetter(this, "AuthenticationResult",
+loader.lazyDefine(this, "AuthenticationResult",
   "devtools/toolkit/security/auth", true);
 
 DevToolsUtils.defineLazyGetter(this, "bundle", () => {

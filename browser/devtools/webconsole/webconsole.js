@@ -9,31 +9,24 @@
 const {Cc, Ci, Cu} = require("chrome");
 
 const {Utils: WebConsoleUtils, CONSOLE_WORKER_IDS} = require("devtools/toolkit/webconsole/utils");
+const { Promise: promise } = require("resource://gre/modules/Promise.jsm");
 
-loader.lazyServiceGetter(this, "clipboardHelper",
-                         "@mozilla.org/widget/clipboardhelper;1",
-                         "nsIClipboardHelper");
-loader.lazyImporter(this, "Services", "resource://gre/modules/Services.jsm");
-loader.lazyImporter(this, "promise", "resource://gre/modules/Promise.jsm", "Promise");
-loader.lazyGetter(this, "EventEmitter", () => require("devtools/toolkit/event-emitter"));
-loader.lazyGetter(this, "AutocompletePopup",
-                  () => require("devtools/shared/autocomplete-popup").AutocompletePopup);
-loader.lazyGetter(this, "ToolSidebar",
-                  () => require("devtools/framework/sidebar").ToolSidebar);
-loader.lazyGetter(this, "NetworkPanel",
-                  () => require("devtools/webconsole/network-panel").NetworkPanel);
-loader.lazyGetter(this, "ConsoleOutput",
-                  () => require("devtools/webconsole/console-output").ConsoleOutput);
-loader.lazyGetter(this, "Messages",
-                  () => require("devtools/webconsole/console-output").Messages);
-loader.lazyGetter(this, "asyncStorage",
-                  () => require("devtools/toolkit/shared/async-storage"));
-loader.lazyImporter(this, "EnvironmentClient", "resource://gre/modules/devtools/dbg-client.jsm");
-loader.lazyImporter(this, "ObjectClient", "resource://gre/modules/devtools/dbg-client.jsm");
-loader.lazyImporter(this, "VariablesView", "resource:///modules/devtools/VariablesView.jsm");
-loader.lazyImporter(this, "VariablesViewController", "resource:///modules/devtools/VariablesViewController.jsm");
-loader.lazyImporter(this, "PluralForm", "resource://gre/modules/PluralForm.jsm");
-loader.lazyImporter(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm");
+loader.lazyDefine(this, "clipboardHelper",
+  () => Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper));
+loader.lazyDefine(this, "Services", "resource://gre/modules/Services.jsm", true);
+loader.lazyDefine(this, "EventEmitter", "devtools/toolkit/event-emitter");
+loader.lazyDefine(this, "AutocompletePopup", "devtools/shared/autocomplete-popup", true);
+loader.lazyDefine(this, "ToolSidebar", "devtools/framework/sidebar", true);
+loader.lazyDefine(this, "NetworkPanel", "devtools/webconsole/network-panel", true);
+loader.lazyDefine(this, "ConsoleOutput", "devtools/webconsole/console-output", true);
+loader.lazyDefine(this, "Messages", "devtools/webconsole/console-output", true);
+loader.lazyDefine(this, "asyncStorage", "devtools/toolkit/shared/async-storage");
+loader.lazyDefine(this, "EnvironmentClient", "resource://gre/modules/devtools/dbg-client.jsm", true);
+loader.lazyDefine(this, "ObjectClient", "resource://gre/modules/devtools/dbg-client.jsm", true);
+loader.lazyDefine(this, "VariablesView", "resource:///modules/devtools/VariablesView.jsm", true);
+loader.lazyDefine(this, "VariablesViewController", "resource:///modules/devtools/VariablesViewController.jsm", true);
+loader.lazyDefine(this, "PluralForm", "resource://gre/modules/PluralForm.jsm", true);
+loader.lazyDefine(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm", true);
 
 const STRINGS_URI = "chrome://browser/locale/devtools/webconsole.properties";
 let l10n = new WebConsoleUtils.l10n(STRINGS_URI);

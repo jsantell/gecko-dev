@@ -13,18 +13,11 @@ const events = require("sdk/event/core");
 const protocol = require("devtools/server/protocol");
 const { method, custom, RetVal, Arg } = protocol;
 
-loader.lazyGetter(this, "gDevTools", () => {
-  return require("resource:///modules/devtools/gDevTools.jsm").gDevTools;
-});
-loader.lazyGetter(this, "DOMUtils", () => {
-  return Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils)
-});
-loader.lazyGetter(this, "stylesheets", () => {
-  return require("devtools/server/actors/stylesheets");
-});
-loader.lazyGetter(this, "CssLogic", () => {
-  return require("devtools/styleinspector/css-logic").CssLogic;
-});
+loader.lazyDefine(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm", true);
+loader.lazyDefine(this, "DOMUtils",
+  () => Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils))
+loader.lazyDefine(this, "stylesheets", "devtools/server/actors/stylesheets");
+loader.lazyDefine(this, "CssLogic", "devtools/styleinspector/css-logic", true);
 
 const CSSRule = Ci.nsIDOMCSSRule;
 

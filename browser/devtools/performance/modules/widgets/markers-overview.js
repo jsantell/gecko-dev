@@ -13,17 +13,17 @@ const { Cc, Ci, Cu, Cr } = require("chrome");
 const { Heritage } = require("resource:///modules/devtools/ViewHelpers.jsm");
 const { AbstractCanvasGraph } = require("devtools/shared/widgets/Graphs");
 
-loader.lazyRequireGetter(this, "colorUtils",
+loader.lazyDefine(this, "colorUtils",
   "devtools/css-color", true);
-loader.lazyRequireGetter(this, "getColor",
+loader.lazyDefine(this, "getColor",
   "devtools/shared/theme", true);
-loader.lazyRequireGetter(this, "L10N",
+loader.lazyDefine(this, "L10N",
   "devtools/performance/global", true);
-loader.lazyRequireGetter(this, "TickUtils",
+loader.lazyDefine(this, "TickUtils",
   "devtools/performance/waterfall-ticks", true);
-loader.lazyRequireGetter(this, "MarkerUtils",
+loader.lazyDefine(this, "MarkerUtils",
   "devtools/performance/marker-utils");
-loader.lazyRequireGetter(this, "TIMELINE_BLUEPRINT",
+loader.lazyDefine(this, "TIMELINE_BLUEPRINT",
   "devtools/performance/markers", true);
 
 const OVERVIEW_HEADER_HEIGHT = 14; // px

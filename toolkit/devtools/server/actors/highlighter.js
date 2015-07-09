@@ -13,15 +13,11 @@ const Heritage = require("sdk/core/heritage");
 const EventEmitter = require("devtools/toolkit/event-emitter");
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-loader.lazyRequireGetter(this, "CssLogic",
-  "devtools/styleinspector/css-logic", true);
-loader.lazyRequireGetter(this, "setIgnoreLayoutChanges",
-  "devtools/server/actors/layout", true);
-loader.lazyGetter(this, "DOMUtils", function() {
-  return Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
-});
-loader.lazyImporter(this, "LayoutHelpers",
-  "resource://gre/modules/devtools/LayoutHelpers.jsm");
+loader.lazyDefine(this, "CssLogic", "devtools/styleinspector/css-logic", true);
+loader.lazyDefine(this, "setIgnoreLayoutChanges", "devtools/server/actors/layout", true);
+loader.lazyDefine(this, "LayoutHelpers", "resource://gre/modules/devtools/LayoutHelpers.jsm", true);
+loader.lazyDefine(this, "DOMUtils",
+  () => Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils));
 
 // FIXME: add ":visited" and ":link" after bug 713106 is fixed
 const PSEUDO_CLASSES = [":hover", ":active", ":focus"];

@@ -3,7 +3,7 @@
 
 "use strict";
 
-devtools.lazyRequireGetter(this, "cert",
+devtools.lazyDefine(this, "cert",
   "devtools/toolkit/security/cert");
 
 // Test basic functionality of DevTools client and server OOB_CERT auth (used

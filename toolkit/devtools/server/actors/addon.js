@@ -13,12 +13,11 @@ let { ConsoleAPIListener } = require("devtools/toolkit/webconsole/utils");
 let DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 let { dbg_assert, update } = DevToolsUtils;
 
-loader.lazyRequireGetter(this, "AddonThreadActor", "devtools/server/actors/script", true);
-loader.lazyRequireGetter(this, "unwrapDebuggerObjectGlobal", "devtools/server/actors/script", true);
-loader.lazyRequireGetter(this, "mapURIToAddonID", "devtools/server/actors/utils/map-uri-to-addon-id");
-loader.lazyRequireGetter(this, "WebConsoleActor", "devtools/server/actors/webconsole", true);
-
-loader.lazyImporter(this, "AddonManager", "resource://gre/modules/AddonManager.jsm");
+loader.lazyDefine(this, "AddonThreadActor", "devtools/server/actors/script", true);
+loader.lazyDefine(this, "unwrapDebuggerObjectGlobal", "devtools/server/actors/script", true);
+loader.lazyDefine(this, "mapURIToAddonID", "devtools/server/actors/utils/map-uri-to-addon-id");
+loader.lazyDefine(this, "WebConsoleActor", "devtools/server/actors/webconsole", true);
+loader.lazyDefine(this, "AddonManager", "resource://gre/modules/AddonManager.jsm", true);
 
 function BrowserAddonActor(aConnection, aAddon) {
   this.conn = aConnection;

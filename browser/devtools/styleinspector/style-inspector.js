@@ -10,10 +10,10 @@ const {Tools} = require("main");
 Cu.import("resource://gre/modules/Services.jsm");
 const {PREF_ORIG_SOURCES} = require("devtools/styleeditor/utils");
 
-loader.lazyGetter(this, "gDevTools", () => Cu.import("resource:///modules/devtools/gDevTools.jsm", {}).gDevTools);
-loader.lazyGetter(this, "RuleView", () => require("devtools/styleinspector/rule-view"));
-loader.lazyGetter(this, "ComputedView", () => require("devtools/styleinspector/computed-view"));
-loader.lazyGetter(this, "_strings", () => Services.strings
+loader.lazyDefine(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm", true);
+loader.lazyDefine(this, "RuleView", "devtools/styleinspector/rule-view");
+loader.lazyDefine(this, "ComputedView", "devtools/styleinspector/computed-view");
+loader.lazyDefine(this, "_strings", () => Services.strings
   .createBundle("chrome://global/locale/devtools/styleinspector.properties"));
 
 // This module doesn't currently export any symbols directly, it only

@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-loader.lazyRequireGetter(this, "promise");
-loader.lazyRequireGetter(this, "EventEmitter",
+loader.lazyDefine(this, "promise");
+loader.lazyDefine(this, "EventEmitter",
   "devtools/toolkit/event-emitter");
 
 /**

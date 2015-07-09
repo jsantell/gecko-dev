@@ -4,9 +4,9 @@
 
 "use strict";
 
-loader.lazyRequireGetter(this, "Services");
-loader.lazyImporter(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm");
-loader.lazyImporter(this, "Task", "resource://gre/modules/Task.jsm");
+loader.lazyDefine(this, "Services");
+loader.lazyDefine(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm", true);
+loader.lazyDefine(this, "Task", "resource://gre/modules/Task.jsm", true);
 
 /**
  * Tries to open a Stylesheet file in the Style Editor. If the file is not found,

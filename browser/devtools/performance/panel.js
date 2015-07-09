@@ -8,10 +8,10 @@
 const { Cc, Ci, Cu, Cr } = require("chrome");
 const { Task } = require("resource://gre/modules/Task.jsm");
 
-loader.lazyRequireGetter(this, "promise");
-loader.lazyRequireGetter(this, "EventEmitter",
+loader.lazyDefine(this, "promise");
+loader.lazyDefine(this, "EventEmitter",
   "devtools/toolkit/event-emitter");
-loader.lazyRequireGetter(this, "PerformanceFront",
+loader.lazyDefine(this, "PerformanceFront",
   "devtools/performance/front", true);
 
 function PerformancePanel(iframeWindow, toolbox) {

@@ -8,21 +8,21 @@ const {Cc, Ci, Cu} = require("chrome");
 
 const { Services } = require("resource://gre/modules/Services.jsm");
 
-loader.lazyGetter(this, "osString", () => Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime).OS);
+loader.lazyDefine(this, "osString", () => Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime).OS);
 
 // Panels
-loader.lazyGetter(this, "OptionsPanel", () => require("devtools/framework/toolbox-options").OptionsPanel);
-loader.lazyGetter(this, "InspectorPanel", () => require("devtools/inspector/inspector-panel").InspectorPanel);
-loader.lazyGetter(this, "WebConsolePanel", () => require("devtools/webconsole/panel").WebConsolePanel);
-loader.lazyGetter(this, "DebuggerPanel", () => require("devtools/debugger/panel").DebuggerPanel);
-loader.lazyGetter(this, "StyleEditorPanel", () => require("devtools/styleeditor/styleeditor-panel").StyleEditorPanel);
-loader.lazyGetter(this, "ShaderEditorPanel", () => require("devtools/shadereditor/panel").ShaderEditorPanel);
-loader.lazyGetter(this, "CanvasDebuggerPanel", () => require("devtools/canvasdebugger/panel").CanvasDebuggerPanel);
-loader.lazyGetter(this, "WebAudioEditorPanel", () => require("devtools/webaudioeditor/panel").WebAudioEditorPanel);
-loader.lazyGetter(this, "PerformancePanel", () => require("devtools/performance/panel").PerformancePanel);
-loader.lazyGetter(this, "NetMonitorPanel", () => require("devtools/netmonitor/panel").NetMonitorPanel);
-loader.lazyGetter(this, "StoragePanel", () => require("devtools/storage/panel").StoragePanel);
-loader.lazyGetter(this, "ScratchpadPanel", () => require("devtools/scratchpad/scratchpad-panel").ScratchpadPanel);
+loader.lazyDefine(this, "OptionsPanel", "devtools/framework/toolbox-options", true);
+loader.lazyDefine(this, "InspectorPanel", "devtools/inspector/inspector-panel", true);
+loader.lazyDefine(this, "WebConsolePanel", "devtools/webconsole/panel", true);
+loader.lazyDefine(this, "DebuggerPanel", "devtools/debugger/panel", true);
+loader.lazyDefine(this, "StyleEditorPanel", "devtools/styleeditor/styleeditor-panel", true);
+loader.lazyDefine(this, "ShaderEditorPanel", "devtools/shadereditor/panel", true);
+loader.lazyDefine(this, "CanvasDebuggerPanel", "devtools/canvasdebugger/panel", true);
+loader.lazyDefine(this, "WebAudioEditorPanel", "devtools/webaudioeditor/panel", true);
+loader.lazyDefine(this, "PerformancePanel", "devtools/performance/panel", true);
+loader.lazyDefine(this, "NetMonitorPanel", "devtools/netmonitor/panel", true);
+loader.lazyDefine(this, "StoragePanel", "devtools/storage/panel", true);
+loader.lazyDefine(this, "ScratchpadPanel", "devtools/scratchpad/scratchpad-panel", true);
 
 // Strings
 const toolboxProps = "chrome://browser/locale/devtools/toolbox.properties";
@@ -38,18 +38,18 @@ const netMonitorProps = "chrome://browser/locale/devtools/netmonitor.properties"
 const storageProps = "chrome://browser/locale/devtools/storage.properties";
 const scratchpadProps = "chrome://browser/locale/devtools/scratchpad.properties";
 
-loader.lazyGetter(this, "toolboxStrings", () => Services.strings.createBundle(toolboxProps));
-loader.lazyGetter(this, "profilerStrings",() => Services.strings.createBundle(profilerProps));
-loader.lazyGetter(this, "webConsoleStrings", () => Services.strings.createBundle(webConsoleProps));
-loader.lazyGetter(this, "debuggerStrings", () => Services.strings.createBundle(debuggerProps));
-loader.lazyGetter(this, "styleEditorStrings", () => Services.strings.createBundle(styleEditorProps));
-loader.lazyGetter(this, "shaderEditorStrings", () => Services.strings.createBundle(shaderEditorProps));
-loader.lazyGetter(this, "canvasDebuggerStrings", () => Services.strings.createBundle(canvasDebuggerProps));
-loader.lazyGetter(this, "webAudioEditorStrings", () => Services.strings.createBundle(webAudioEditorProps));
-loader.lazyGetter(this, "inspectorStrings", () => Services.strings.createBundle(inspectorProps));
-loader.lazyGetter(this, "netMonitorStrings", () => Services.strings.createBundle(netMonitorProps));
-loader.lazyGetter(this, "storageStrings", () => Services.strings.createBundle(storageProps));
-loader.lazyGetter(this, "scratchpadStrings", () => Services.strings.createBundle(scratchpadProps));
+loader.lazyDefine(this, "toolboxStrings", () => Services.strings.createBundle(toolboxProps));
+loader.lazyDefine(this, "profilerStrings",() => Services.strings.createBundle(profilerProps));
+loader.lazyDefine(this, "webConsoleStrings", () => Services.strings.createBundle(webConsoleProps));
+loader.lazyDefine(this, "debuggerStrings", () => Services.strings.createBundle(debuggerProps));
+loader.lazyDefine(this, "styleEditorStrings", () => Services.strings.createBundle(styleEditorProps));
+loader.lazyDefine(this, "shaderEditorStrings", () => Services.strings.createBundle(shaderEditorProps));
+loader.lazyDefine(this, "canvasDebuggerStrings", () => Services.strings.createBundle(canvasDebuggerProps));
+loader.lazyDefine(this, "webAudioEditorStrings", () => Services.strings.createBundle(webAudioEditorProps));
+loader.lazyDefine(this, "inspectorStrings", () => Services.strings.createBundle(inspectorProps));
+loader.lazyDefine(this, "netMonitorStrings", () => Services.strings.createBundle(netMonitorProps));
+loader.lazyDefine(this, "storageStrings", () => Services.strings.createBundle(storageProps));
+loader.lazyDefine(this, "scratchpadStrings", () => Services.strings.createBundle(scratchpadProps));
 
 let Tools = {};
 exports.Tools = Tools;

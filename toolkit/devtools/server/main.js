@@ -82,7 +82,7 @@ function loadSubScript(aURL)
   }
 }
 
-loader.lazyRequireGetter(this, "events", "sdk/event/core");
+loader.lazyDefine(this, "events", "sdk/event/core");
 
 let {defer, resolve, reject, all} = require("devtools/toolkit/deprecated-sync-thenables");
 this.defer = defer;

@@ -4046,6 +4046,4 @@ XPCOMUtils.defineLazyGetter(this, "domUtils", function() {
   return Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
 });
 
-loader.lazyGetter(this, "AutocompletePopup", function() {
-  return require("devtools/shared/autocomplete-popup").AutocompletePopup;
-});
+loader.lazyDefine(this, "AutocompletePopup", "devtools/shared/autocomplete-popup", true);

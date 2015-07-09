@@ -5,13 +5,13 @@
 "use strict";
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
-devtools.lazyImporter(this, "promise", "resource://gre/modules/Promise.jsm", "Promise");
-devtools.lazyImporter(this, "Task", "resource://gre/modules/Task.jsm", "Task");
+devtools.lazyDefine(this, "Promise", "resource://gre/modules/Promise.jsm", true);
+devtools.lazyDefine(this, "Task", "resource://gre/modules/Task.jsm", true);
 const loader = Cc["@mozilla.org/moz/jssubscript-loader;1"]
             .getService(Ci.mozIJSSubScriptLoader);
 let EventUtils = {};
 loader.loadSubScript("chrome://marionette/content/EventUtils.js", EventUtils);
-devtools.lazyGetter(this, "nsIProfilerModule", () => {
+devtools.lazyDefine(this, "nsIProfilerModule", () => {
   return Cc["@mozilla.org/tools/profiler;1"].getService(Ci.nsIProfiler);
 });
 
@@ -60,7 +60,7 @@ function promiseXHR(data) {
     url += "?devtools-cachebust=" + Math.random();
   }
 
-  let deferred = promise.defer();
+  let deferred = Promise.defer();
   xhr.addEventListener("loadend", function loadend(event) {
     xhr.removeEventListener("loadend", loadend);
     deferred.resolve({ status: xhr.status, response: xhr.response });

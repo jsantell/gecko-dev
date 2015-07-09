@@ -8,9 +8,9 @@ const { Cc, Ci, Cu } = require("chrome");
 const { reportException } = require("devtools/toolkit/DevToolsUtils");
 const { Class } = require("sdk/core/heritage");
 const { expectState } = require("devtools/server/actors/common");
-loader.lazyRequireGetter(this, "events", "sdk/event/core");
-loader.lazyRequireGetter(this, "EventTarget", "sdk/event/target", true);
-loader.lazyRequireGetter(this, "StackFrameCache",
+loader.lazyDefine(this, "events", "sdk/event/core");
+loader.lazyDefine(this, "EventTarget", "sdk/event/target", true);
+loader.lazyDefine(this, "StackFrameCache",
                          "devtools/server/actors/utils/stack", true);
 /**
  * A class that returns memory data for a parent actor's window.

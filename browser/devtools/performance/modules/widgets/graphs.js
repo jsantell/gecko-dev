@@ -14,19 +14,19 @@ const LineGraphWidget = require("devtools/shared/widgets/LineGraphWidget");
 const BarGraphWidget = require("devtools/shared/widgets/BarGraphWidget");
 const { CanvasGraphUtils } = require("devtools/shared/widgets/Graphs");
 
-loader.lazyRequireGetter(this, "promise");
-loader.lazyRequireGetter(this, "EventEmitter",
+loader.lazyDefine(this, "promise");
+loader.lazyDefine(this, "EventEmitter",
   "devtools/toolkit/event-emitter");
 
-loader.lazyRequireGetter(this, "colorUtils",
+loader.lazyDefine(this, "colorUtils",
   "devtools/css-color", true);
-loader.lazyRequireGetter(this, "getColor",
+loader.lazyDefine(this, "getColor",
   "devtools/shared/theme", true);
-loader.lazyRequireGetter(this, "ProfilerGlobal",
+loader.lazyDefine(this, "ProfilerGlobal",
   "devtools/performance/global");
-loader.lazyRequireGetter(this, "TimelineGlobal",
+loader.lazyDefine(this, "TimelineGlobal",
   "devtools/performance/global");
-loader.lazyRequireGetter(this, "MarkersOverview",
+loader.lazyDefine(this, "MarkersOverview",
   "devtools/performance/markers-overview", true);
 
 /**

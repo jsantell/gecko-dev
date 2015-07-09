@@ -415,6 +415,5 @@ function setAlpha(colorValue, alpha) {
   return "rgba(" + r + ", " + g + ", " + b + ", " + alpha + ")";
 }
 
-loader.lazyGetter(this, "DOMUtils", function () {
-  return Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
-});
+loader.lazyDefine(this, "DOMUtils",
+  () => Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils));

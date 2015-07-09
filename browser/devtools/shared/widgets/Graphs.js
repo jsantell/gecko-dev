@@ -8,14 +8,14 @@ const { Cc, Ci, Cu, Cr } = require("chrome");
 const { Task } = Cu.import("resource://gre/modules/Task.jsm", {});
 const { Heritage, setNamedTimeout, clearNamedTimeout } = require("resource:///modules/devtools/ViewHelpers.jsm");
 
-loader.lazyRequireGetter(this, "promise");
-loader.lazyRequireGetter(this, "EventEmitter",
+loader.lazyDefine(this, "promise");
+loader.lazyDefine(this, "EventEmitter",
   "devtools/toolkit/event-emitter");
 
-loader.lazyImporter(this, "DevToolsWorker",
-  "resource://gre/modules/devtools/shared/worker.js");
-loader.lazyImporter(this, "LayoutHelpers",
-  "resource://gre/modules/devtools/LayoutHelpers.jsm");
+loader.lazyDefine(this, "DevToolsWorker",
+  "resource://gre/modules/devtools/shared/worker.js", true);
+loader.lazyDefine(this, "LayoutHelpers",
+  "resource://gre/modules/devtools/LayoutHelpers.jsm", true);
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const GRAPH_SRC = "chrome://browser/content/devtools/graphs-frame.xhtml";

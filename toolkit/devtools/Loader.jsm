@@ -265,11 +265,25 @@ var gNextLoaderID = 0;
  * then a new one can also be created.
  */
 this.DevToolsLoader = function DevToolsLoader() {
+  // Deprecated. Just use `lazyDefine`.
+  let deprecated = function (fn, name) {
+    let shown = false;
+    return function (...args) {
+      // Only display one deprecation message per type
+      if (!shown) {
+        Cu.reportError(`DEPRECATED: "loader.${name}" is deprecated; please use "lazyDefine" instead.\n`);
+        shown = true;
+      }
+      return fn(...args);
+    }
+  }
+  this.lazyGetter = deprecated(XPCOMUtils.defineLazyGetter.bind(XPCOMUtils), "lazyGetter");
+  this.lazyImporter = deprecated(XPCOMUtils.defineLazyModuleGetter.bind(XPCOMUtils), "lazyImporter");
+  this.lazyServiceGetter = deprecated(XPCOMUtils.defineLazyServiceGetter.bind(XPCOMUtils), "lazyServiceGetter");
+  this.lazyRequireGetter = deprecated(this.lazyDefine.bind(this), "lazyRequireGetter");
+
   this.require = this.require.bind(this);
-  this.lazyGetter = XPCOMUtils.defineLazyGetter.bind(XPCOMUtils);
-  this.lazyImporter = XPCOMUtils.defineLazyModuleGetter.bind(XPCOMUtils);
-  this.lazyServiceGetter = XPCOMUtils.defineLazyServiceGetter.bind(XPCOMUtils);
-  this.lazyRequireGetter = this.lazyRequireGetter.bind(this);
+  this.lazyDefine = this.lazyDefine.bind(this);
 };
 
 DevToolsLoader.prototype = {
@@ -311,12 +325,13 @@ DevToolsLoader.prototype = {
    *    The object to define the property on.
    * @param String property
    *    The property name.
-   * @param String module
-   *    The module path.
+   * @param String|Function module
+   *    The module path, or a function that becomes the getter for the object.
    * @param Boolean destructure
    *    Pass true if the property name is a member of the module's exports.
+   *    Does nothing if `module` is a function.
    */
-  lazyRequireGetter: function (obj, property, module, destructure) {
+  lazyDefine: function (obj, property, module, destructure) {
     Object.defineProperty(obj, property, {
       get: () => {
         // Redefine this accessor property as a data property.
@@ -324,9 +339,10 @@ DevToolsLoader.prototype = {
         // a proxy whose defineProperty handler might unwittingly trigger this
         // getter again.
         delete obj[property];
-        let value = destructure
-          ? this.require(module)[property]
-          : this.require(module || property);
+        let value = typeof module === "function" ? module() :
+                    destructure ? this.require(module)[property] :
+                    this.require(module || property);
+
         Object.defineProperty(obj, property, {
           value,
           writable: true,
@@ -401,10 +417,11 @@ DevToolsLoader.prototype = {
       btoa: btoa,
       _Iterator: Iterator,
       loader: {
-        lazyGetter: this.lazyGetter,
         lazyImporter: this.lazyImporter,
+        lazyGetter: this.lazyGetter,
         lazyServiceGetter: this.lazyServiceGetter,
-        lazyRequireGetter: this.lazyRequireGetter,
+        lazyRequireGetter: this.lazyDefine,
+        lazyDefine: this.lazyDefine,
         id: this.id
       },
     };

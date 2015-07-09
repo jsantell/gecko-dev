@@ -6,21 +6,16 @@
 const { Cu, Ci, Cc, CC } = require("chrome");
 const { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
 
-XPCOMUtils.defineLazyGetter(this, "dirService", function() {
-  return Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties);
-});
+loader.lazyDefine(this, "dirService",
+  () => Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties));
 
-XPCOMUtils.defineLazyGetter(this, "ZipWriter", function() {
-  return CC("@mozilla.org/zipwriter;1", "nsIZipWriter");
-});
+loader.lazyDefine(this, "ZipWriter",
+  () => CC("@mozilla.org/zipwriter;1", "nsIZipWriter"));
 
-XPCOMUtils.defineLazyGetter(this, "LocalFile", function() {
-  return new CC("@mozilla.org/file/local;1", "nsILocalFile", "initWithPath");
-});
+loader.lazyDefine(this, "LocalFile",
+  () => new CC("@mozilla.org/file/local;1", "nsILocalFile", "initWithPath"));
 
-XPCOMUtils.defineLazyGetter(this, "getMostRecentBrowserWindow", function() {
-  return require("sdk/window/utils").getMostRecentBrowserWindow;
-});
+loader.lazyDefine(this, "getMostRecentBrowserWindow", "sdk/window/utils", true);
 
 const nsIFilePicker = Ci.nsIFilePicker;
 

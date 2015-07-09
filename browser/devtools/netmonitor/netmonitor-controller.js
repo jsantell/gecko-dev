@@ -117,34 +117,24 @@ Cu.import("resource:///modules/devtools/VariablesView.jsm");
 Cu.import("resource:///modules/devtools/VariablesViewController.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 
-const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
+const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+const require = devtools.require;
 const promise = Cu.import("resource://gre/modules/Promise.jsm", {}).Promise;
+const Task = Cu.import("resource://gre/modules/Task.jsm", {}).Task;
 const EventEmitter = require("devtools/toolkit/event-emitter");
 const Editor = require("devtools/sourceeditor/editor");
 const {Tooltip} = require("devtools/shared/widgets/Tooltip");
 const {ToolSidebar} = require("devtools/framework/sidebar");
 const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 
-XPCOMUtils.defineLazyModuleGetter(this, "Chart",
-  "resource:///modules/devtools/Chart.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "Curl",
-  "resource:///modules/devtools/Curl.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "CurlUtils",
-  "resource:///modules/devtools/Curl.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-  "resource://gre/modules/Task.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
-  "resource://gre/modules/PluralForm.jsm");
-
-XPCOMUtils.defineLazyServiceGetter(this, "clipboardHelper",
-  "@mozilla.org/widget/clipboardhelper;1", "nsIClipboardHelper");
-
-XPCOMUtils.defineLazyServiceGetter(this, "DOMParser",
-  "@mozilla.org/xmlextras/domparser;1", "nsIDOMParser");
+devtools.lazyDefine(this, "Chart", "resource:///modules/devtools/Chart.jsm", true);
+devtools.lazyDefine(this, "Curl", "resource:///modules/devtools/Curl.jsm", true);
+devtools.lazyDefine(this, "CurlUtils", "resource:///modules/devtools/Curl.jsm", true);
+devtools.lazyDefine(this, "PluralForm", "resource://gre/modules/PluralForm.jsm", true);
+devtools.lazyDefine(this, "clipboardHelper",
+  () => Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper));
+devtools.lazyDefine(this, "DOMParser",
+  () => Cc["@mozilla.org/xmlextras/domparser;1"].getService(Ci.nsIDOMParser));
 
 Object.defineProperty(this, "NetworkHelper", {
   get: function() {

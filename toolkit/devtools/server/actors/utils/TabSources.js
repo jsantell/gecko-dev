@@ -12,10 +12,10 @@ const EventEmitter = require("devtools/toolkit/event-emitter");
 const { OriginalLocation, GeneratedLocation, getOffsetColumn } = require("devtools/server/actors/common");
 const { resolve } = require("promise");
 
-loader.lazyRequireGetter(this, "SourceActor", "devtools/server/actors/script", true);
-loader.lazyRequireGetter(this, "isEvalSource", "devtools/server/actors/script", true);
-loader.lazyRequireGetter(this, "SourceMapConsumer", "source-map", true);
-loader.lazyRequireGetter(this, "SourceMapGenerator", "source-map", true);
+loader.lazyDefine(this, "SourceActor", "devtools/server/actors/script", true);
+loader.lazyDefine(this, "isEvalSource", "devtools/server/actors/script", true);
+loader.lazyDefine(this, "SourceMapConsumer", "source-map", true);
+loader.lazyDefine(this, "SourceMapGenerator", "source-map", true);
 
 /**
  * Manages the sources for a thread. Handles source maps, locations in the

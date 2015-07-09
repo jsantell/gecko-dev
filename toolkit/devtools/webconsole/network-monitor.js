@@ -10,15 +10,14 @@ const {Cc, Ci, Cu, Cr} = require("chrome");
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-loader.lazyRequireGetter(this, "NetworkHelper",
-                         "devtools/toolkit/webconsole/network-helper");
-loader.lazyImporter(this, "Services", "resource://gre/modules/Services.jsm");
-loader.lazyRequireGetter(this, "DevToolsUtils",
-                         "devtools/toolkit/DevToolsUtils");
-loader.lazyImporter(this, "NetUtil", "resource://gre/modules/NetUtil.jsm");
-loader.lazyServiceGetter(this, "gActivityDistributor",
-                         "@mozilla.org/network/http-activity-distributor;1",
-                         "nsIHttpActivityDistributor");
+loader.lazyDefine(this, "NetworkHelper",
+                        "devtools/toolkit/webconsole/network-helper");
+loader.lazyDefine(this, "Services", "resource://gre/modules/Services.jsm", true);
+loader.lazyDefine(this, "DevToolsUtils",
+                        "devtools/toolkit/DevToolsUtils");
+loader.lazyDefine(this, "NetUtil", "resource://gre/modules/NetUtil.jsm", true);
+loader.lazyDefine(this, "gActivityDistributor",
+  () => Cc["@mozilla.org/network/http-activity-distributor;1"].getService(Ci.nsIHttpActivityDistributor));
 
 ///////////////////////////////////////////////////////////////////////////////
 // Network logging

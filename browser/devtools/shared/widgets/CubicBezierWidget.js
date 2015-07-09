@@ -29,9 +29,8 @@ const EventEmitter = require("devtools/toolkit/event-emitter");
 const {setTimeout, clearTimeout} = require("sdk/timers");
 const {PREDEFINED, PRESETS, DEFAULT_PRESET_CATEGORY} = require("devtools/shared/widgets/CubicBezierPresets");
 const {Cc, Ci} = require('chrome');
-loader.lazyGetter(this, "DOMUtils", () => {
-  return Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
-});
+loader.lazyDefine(this, "DOMUtils",
+  () => Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils));
 
 /**
  * CubicBezier data structure helper

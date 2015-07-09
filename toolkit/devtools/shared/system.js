@@ -6,19 +6,16 @@
 const { Cc, Ci, Cu } = require("chrome");
 const { Task } = require("resource://gre/modules/Task.jsm");
 
-loader.lazyRequireGetter(this, "Services");
-loader.lazyRequireGetter(this, "promise");
-loader.lazyRequireGetter(this, "OS", "resource://gre/modules/commonjs/node/os");
-loader.lazyRequireGetter(this, "DebuggerServer", "devtools/server/main", true);
-loader.lazyRequireGetter(this, "AppConstants",
+loader.lazyDefine(this, "Services");
+loader.lazyDefine(this, "promise");
+loader.lazyDefine(this, "OS", "resource://gre/modules/commonjs/node/os");
+loader.lazyDefine(this, "DebuggerServer", "devtools/server/main", true);
+loader.lazyDefine(this, "AppConstants",
   "resource://gre/modules/AppConstants.jsm", true);
-loader.lazyGetter(this, "screenManager", () => {
-  return Cc["@mozilla.org/gfx/screenmanager;1"].getService(Ci.nsIScreenManager);
-});
-loader.lazyGetter(this, "oscpu", () => {
-  return Cc["@mozilla.org/network/protocol;1?name=http"]
-           .getService(Ci.nsIHttpProtocolHandler).oscpu;
-});
+loader.lazyDefine(this, "screenManager",
+  () => Cc["@mozilla.org/gfx/screenmanager;1"].getService(Ci.nsIScreenManager));
+loader.lazyDefine(this, "oscpu",
+  () => Cc["@mozilla.org/network/protocol;1?name=http"].getService(Ci.nsIHttpProtocolHandler).oscpu);
 
 const APP_MAP = {
   "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}": "firefox",

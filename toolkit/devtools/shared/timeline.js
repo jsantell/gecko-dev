@@ -24,13 +24,13 @@ const { Ci, Cu } = require("chrome");
 const { Class } = require("sdk/core/heritage");
 // Be aggressive about lazy loading, as this will run on every
 // toolbox startup
-loader.lazyRequireGetter(this, "events", "sdk/event/core");
-loader.lazyRequireGetter(this, "Timers", "sdk/timers");
-loader.lazyRequireGetter(this, "Task", "resource://gre/modules/Task.jsm", true);
-loader.lazyRequireGetter(this, "Memory", "devtools/toolkit/shared/memory", true);
-loader.lazyRequireGetter(this, "Framerate", "devtools/toolkit/shared/framerate", true);
-loader.lazyRequireGetter(this, "StackFrameCache", "devtools/server/actors/utils/stack", true);
-loader.lazyRequireGetter(this, "EventTarget", "sdk/event/target", true);
+loader.lazyDefine(this, "events", "sdk/event/core");
+loader.lazyDefine(this, "Timers", "sdk/timers");
+loader.lazyDefine(this, "Task", "resource://gre/modules/Task.jsm", true);
+loader.lazyDefine(this, "Memory", "devtools/toolkit/shared/memory", true);
+loader.lazyDefine(this, "Framerate", "devtools/toolkit/shared/framerate", true);
+loader.lazyDefine(this, "StackFrameCache", "devtools/server/actors/utils/stack", true);
+loader.lazyDefine(this, "EventTarget", "sdk/event/target", true);
 
 // How often do we pull markers from the docShells, and therefore, how often do
 // we send events to the front (knowing that when there are no markers in the
