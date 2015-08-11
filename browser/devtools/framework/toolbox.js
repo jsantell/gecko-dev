@@ -412,16 +412,7 @@ Toolbox.prototype = {
 
       // Lazily connect to the profiler here and don't wait for it to complete,
       // used to intercept console.profile calls before the performance tools are open.
-      let profilerReady = this.initPerformance();
-
-      // However, while testing, we must wait for the performance connection to
-      // finish, as most tests shut down without waiting for a toolbox
-      // destruction event, resulting in the shared profiler connection being
-      // opened and closed outside of the test that originally opened the
-      // toolbox.
-      if (DevToolsUtils.testing) {
-        yield profilerReady;
-      }
+      this.initPerformance();
 
       this.emit("ready");
     }.bind(this)).then(null, console.error.bind(console));
@@ -1882,7 +1873,7 @@ Toolbox.prototype = {
       }
     }));
 
-    // Destroy the profiler connection
+    // Destroy the profiler connection -- run `initPerformance` again
     outstanding.push(this.destroyPerformance());
 
     // We need to grab a reference to win before this._host is destroyed.
@@ -1987,10 +1978,11 @@ Toolbox.prototype = {
       return;
     }
 
-    if (this.performance) {
-      yield this.performance.connect();
-      return this.performance;
+    if (this._performanceConnection) {
+      return this._performanceConnection.promise;
     }
+
+    this._performanceConnection = promise.defer();
 
     this._performance = createPerformanceFront(this._target);
     this.performance.on("*", this._onPerformanceFrontEvent);
@@ -2000,7 +1992,8 @@ Toolbox.prototype = {
     // Emit an event when connected, but don't wait on startup for this.
     this.emit("profiler-connected");
 
-    return this.performance;
+    this._performanceConnection.resolve(this.performance);
+    return this._performanceConnection.promise;
   }),
 
   /**
@@ -2009,8 +2002,10 @@ Toolbox.prototype = {
    * the performance connection destroy method will wait for it on its own.
    */
   destroyPerformance: Task.async(function*() {
-    if (!this.performance) {
-      return;
+    // If still connecting to performance actor, allow the
+    // actor to resolve its connection before attempting to destroy.
+    if (this._performanceConnection) {
+      yield this._performanceConnection.promise;
     }
     this.performance.off("*", this._onPerformanceFrontEvent);
     yield this.performance.destroy();
