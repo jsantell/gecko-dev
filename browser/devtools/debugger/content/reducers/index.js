@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
+const { combineReducers } = require('devtools/vendor/redux');
 const eventListeners = require('./event-listeners');
 
-module.exports = { eventListeners };
+module.exports = combineReducers({ eventListeners });

@@ -3,11 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-const fluxify = require('./fluxify/dispatcher');
-const thunkMiddleware = require('./fluxify/thunkMiddleware');
-const logMiddleware = require('./fluxify/logMiddleware');
-const waitUntilService = require('./fluxify/waitUntilService')
-const { compose } = require('devtools/toolkit/DevToolsUtils');
+const { createStore, combineReducers, applyMiddleware } = require("devtools/vendor/redux");
+const middlewares = require('./redux-middleware');
 
 /**
  * This creates a dispatcher with all the standard middleware in place
@@ -16,16 +13,21 @@ const { compose } = require('devtools/toolkit/DevToolsUtils');
  *
  * @param {object} opts - boolean configuration flags
  *        - log: log all dispatched actions to console
+ *        - middleware: array of middleware to be included in the redux store
  */
 module.exports = (opts={}) => {
   const middleware = [
-    thunkMiddleware,
-    waitUntilService.service
+    middlewares.thunk,
+    middlewares.waitUntilService
   ];
 
   if (opts.log) {
-    middleware.push(logMiddleware);
+    middleware.push(middlewares.log);
   }
 
-  return fluxify.applyMiddleware(...middleware)(fluxify.createDispatcher);
+  if (opts.middleware) {
+    opts.middleware.forEach(fn => middleware.push(fn));
+  }
+
+  return applyMiddleware(...middleware)(createStore);
 }

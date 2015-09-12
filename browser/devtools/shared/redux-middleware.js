@@ -3,7 +3,30 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-const NAME = "@@service/waitUntil";
+/**
+ * A middleware that allows thunks (functions) to be dispatched.
+ * If it's a thunk, it is called with `dispatch` and `getState`,
+ * allowing the action to create multiple actions (most likely
+ * asynchronously).
+ */
+function thunk({ dispatch, getState }) {
+  return next => action => {
+    return typeof action === "function"
+      ? action(dispatch, getState)
+      : next(action);
+  }
+}
+
+/**
+ * A middleware that logs all actions coming through the system
+ * to the console.
+ */
+function log({ dispatch, getState }) {
+  return next => action => {
+    console.log('[DISPATCH]', JSON.stringify(action));
+    next(action);
+  }
+}
 
 /**
  * A middleware which acts like a service, because it is stateful
@@ -25,6 +48,8 @@ const NAME = "@@service/waitUntil";
  * }
  * ```
  */
+const WAIT_UNTIL_NAME = "@@service/waitUntil";
+waitUntilService.NAME = WAIT_UNTIL_NAME;
 function waitUntilService({ dispatch, getState }) {
   let pending = [];
 
@@ -53,7 +78,7 @@ function waitUntilService({ dispatch, getState }) {
   }
 
   return next => action => {
-    if (action.type === NAME) {
+    if (action.type === WAIT_UNTIL_NAME) {
       pending.push(action);
     }
     else {
@@ -63,7 +88,6 @@ function waitUntilService({ dispatch, getState }) {
   }
 }
 
-module.exports = {
-  service: waitUntilService,
-  name: NAME
-};
+exports.thunk = thunk;
+exports.log = log;
+exports.waitUntilService = waitUntilService;

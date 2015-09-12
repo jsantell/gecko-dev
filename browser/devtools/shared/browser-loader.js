@@ -55,8 +55,8 @@ function BrowserLoader(baseURI, window) {
   let dynamicPaths = {};
   if (appConstants.DEBUG_JS_MODULES) {
     // Load in the dev version of React
-    dynamicPaths["devtools/shared/content/react"] =
-      "resource:///modules/devtools/shared/content/react-dev.js";
+    dynamicPaths["devtools/shared/vendor/react"] =
+      "resource:///modules/devtools/vendor/react-dev.js";
   }
 
   const opts = {
@@ -67,8 +67,9 @@ function BrowserLoader(baseURI, window) {
     invisibleToDebugger: loaderOptions.invisibleToDebugger,
     require: (id, require) => {
       const uri = require.resolve(id);
+
       if (!uri.startsWith(baseURI) &&
-          !uri.startsWith("resource:///modules/devtools/shared/content")) {
+          !/react/.test(uri)) {
         return devtools.require(uri);
       }
       return require(uri);
