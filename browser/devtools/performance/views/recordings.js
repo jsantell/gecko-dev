@@ -107,6 +107,7 @@ var RecordingsView = Heritage.extend(WidgetMethods, {
    *        Model of the recording that was started.
    */
   _onRecordingStateChange: function (_, state, recording) {
+                             dump(`\nRECORDINGS: ${state} ${recording.isConsole()} ${recording.getLabel()}\n`);
     let recordingItem = this.getItemForPredicate(e => e.attachment === recording);
     if (!recordingItem) {
       recordingItem = this.addEmptyRecording(recording);

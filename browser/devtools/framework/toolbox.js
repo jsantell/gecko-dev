@@ -2057,6 +2057,7 @@ Toolbox.prototype = {
    * which will only occur when `console.profile()` recordings are started before the tool loads.
    */
   _onPerformanceFrontEvent: Task.async(function*(eventName, recording) {
+                              dump(`TOOLBOX: ${eventName}`);
     if (this.getPanel("performance")) {
       this.performance.off("*", this._onPerformanceFrontEvent);
       return;

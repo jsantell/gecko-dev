@@ -206,6 +206,25 @@ var PerformanceController = {
   },
 
   /**
+   * Checks whether or not a new recording is supported by the PerformanceFront.
+   * @return Promise:boolean
+   */
+  canCurrentlyRecord: Task.async(function*() {
+    // If we're testing the legacy front, the performance actor will exist,
+    // with `canCurrentlyRecord` method, so this ensures we test the legacy
+    // path
+    if (gFront.LEGACY_FRONT) {
+      return true;
+    }
+
+    let actorCanCheck = yield gTarget.actorHasMethod("performance", "canCurrentlyRecord");
+    if (!actorCanCheck) {
+      return true;
+    }
+    return (yield gFront.canCurrentlyRecord()).success;
+  }),
+
+  /**
    * Starts recording with the PerformanceFront.
    */
   startRecording: Task.async(function *() {
@@ -221,7 +240,13 @@ var PerformanceController = {
       sampleFrequency: this.getPref("profiler-sample-frequency")
     };
 
-    yield gFront.startRecording(options);
+    // In some cases, like when the target has a private browsing tab,
+    // recording is not currently supported because of the profiler module.
+    // Present a notification in this case alerting the user of this issue.
+    if (!(yield gFront.startRecording(options))) {
+      this.emit(EVENTS.NEW_RECORDING_FAILED);
+      PerformanceView.setState("unavailable");
+    }
   }),
 
   /**
@@ -360,6 +385,8 @@ var PerformanceController = {
       return;
     }
 
+    dump(`on front event ${eventName} ${data}`);
+
     if (["recording-started", "recording-stopped", "recording-stopping"].indexOf(eventName) !== -1) {
       this._onRecordingStateChange(eventName, ...data);
     }
@@ -477,6 +504,7 @@ var PerformanceController = {
    * @param {Array<PerformanceRecordingFront>} recordings
    */
   populateWithRecordings: function (recordings=[]) {
+                            dump(`POPULATE WITH RECORDINGS ${recordings}`);
     for (let recording of recordings) {
       PerformanceController._addNewRecording(recording);
     }
